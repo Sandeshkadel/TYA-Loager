@@ -1,25 +1,20 @@
-// In-memory storage
 let users = [];
 
 export default function handler(req, res) {
     const { id } = req.query;
 
-    // ─── GET: all users ──────────────────────────────────────────
     if (req.method === 'GET') {
         return res.status(200).json(users);
     }
 
-    // ─── POST: upsert tracking data ─────────────────────────────
     if (req.method === 'POST') {
         const body = req.body;
         const existingIndex = users.findIndex(u => u.id === body.id);
         const newUser = {
             ...body,
             lastUpdate: new Date().toISOString(),
-            // preserve existing customPath/favicon if not provided
             customPath: body.customPath || (existingIndex > -1 ? users[existingIndex].customPath : body.id),
             favicon: body.favicon || (existingIndex > -1 ? users[existingIndex].favicon : 'i'),
-            // always update last location
             lastLat: body.lat,
             lastLng: body.lng,
         };
@@ -31,7 +26,6 @@ export default function handler(req, res) {
         return res.status(200).json({ success: true });
     }
 
-    // ─── PUT: update user settings (customPath, favicon) ──────
     if (req.method === 'PUT') {
         if (!id) return res.status(400).json({ error: 'User ID required' });
         const index = users.findIndex(u => u.id === id);
@@ -43,7 +37,6 @@ export default function handler(req, res) {
         return res.status(200).json({ success: true });
     }
 
-    // ─── DELETE: specific user or all ──────────────────────────
     if (req.method === 'DELETE') {
         if (id) {
             const index = users.findIndex(u => u.id === id);
