@@ -1,6 +1,5 @@
 import multer from 'multer';
 
-// In-memory storage for 4 favicons
 const favicons = {};
 
 const upload = multer({
@@ -22,9 +21,15 @@ export const config = {
 };
 
 export default function handler(req, res) {
-    const { name } = req.query;
+    let name = req.query.name;
+    if (!name) {
+        const parts = req.url.split('/');
+        const last = parts[parts.length - 1];
+        if (['i', 'f', 'w', 'g'].includes(last)) {
+            name = last;
+        }
+    }
 
-    // ─── GET: serve favicon by name ─────────────────────────────
     if (req.method === 'GET') {
         if (!name || !['i', 'f', 'w', 'g'].includes(name)) {
             return res.status(400).json({ error: 'Invalid favicon name. Use i, f, w, or g' });
@@ -35,7 +40,6 @@ export default function handler(req, res) {
             res.setHeader('Cache-Control', 'public, max-age=3600');
             return res.status(200).send(fav.buffer);
         }
-        // Fallback: SVG placeholder
         const colors = { i: '#8b5cf6', f: '#f59e0b', w: '#10b981', g: '#ef4444' };
         const color = colors[name] || '#6366f1';
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
@@ -46,32 +50,23 @@ export default function handler(req, res) {
         return res.status(200).send(svg);
     }
 
-    // ─── POST: upload favicon ────────────────────────────────────
     if (req.method === 'POST') {
         if (!name || !['i', 'f', 'w', 'g'].includes(name)) {
             return res.status(400).json({ error: 'Invalid favicon name. Use i, f, w, or g' });
         }
 
-        // Multer middleware with error handling
         upload.single('image')(req, res, (err) => {
-            // Handle multer errors
             if (err) {
                 console.error('Multer error:', err);
                 return res.status(400).json({ error: err.message });
             }
-
-            // No file uploaded
             if (!req.file) {
                 return res.status(400).json({ error: 'No image file provided' });
             }
-
-            // Store the favicon
             favicons[name] = {
                 buffer: req.file.buffer,
                 mimeType: req.file.mimetype,
             };
-
-            // Send success response
             return res.status(200).json({ success: true, name });
         });
     } else {
